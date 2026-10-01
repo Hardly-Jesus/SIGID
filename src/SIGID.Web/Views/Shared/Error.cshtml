@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "Error";
+    var requestId = ViewData["RequestId"] as string;
+}
+
+<h1 class="text-danger">Error</h1>
+<h2 class="h5 text-danger">Ocurrió un error al procesar la solicitud.</h2>
+
+@if (!string.IsNullOrEmpty(requestId))
+{
+    <p><strong>Request ID:</strong> <code>@requestId</code></p>
+}

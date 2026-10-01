@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SIGID.Web</RootNamespace>
+    <UserSecretsId>sigid-web-7c1f2a64-3d5b-4e8a-9b0c-2f6d8e1a4b37</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Necesario para ejecutar Add-Migration / Update-Database (PMC) o dotnet ef usando SIGID.Web como proyecto de inicio -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SIGID.Application\SIGID.Application.csproj" />
+    <!-- Solo para registrar la infraestructura en el contenedor de DI (composition root) -->
+    <ProjectReference Include="..\SIGID.Infrastructure\SIGID.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

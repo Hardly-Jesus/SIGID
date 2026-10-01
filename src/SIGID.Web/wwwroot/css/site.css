@@ -1,0 +1,41 @@
+/* Estilos generales de SIGID */
+:root {
+    --sigid-primary: #1f3b64;
+}
+
+html {
+    font-size: 15px;
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    background-color: #f7f8fa;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}
+
+.bg-sigid {
+    background-color: var(--sigid-primary);
+}
+
+.placeholder-card {
+    border-style: dashed;
+}
+
+.placeholder-area {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    background-color: #f1f3f5;
+    border-radius: .375rem;
+    text-align: center;
+    padding: 1rem;
+}

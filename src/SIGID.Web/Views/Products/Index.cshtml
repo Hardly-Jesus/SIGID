@@ -1,0 +1,77 @@
+@model IReadOnlyList<ProductViewModel>
+@{
+    ViewData["Title"] = "Productos";
+    var warning = ViewData["DatabaseWarning"] as string;
+    var success = TempData["SuccessMessage"] as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Gestión de productos</h1>
+    <a class="btn btn-primary" asp-action="Create">Nuevo producto</a>
+</div>
+
+@if (!string.IsNullOrEmpty(success))
+{
+    <div class="alert alert-success">@success</div>
+}
+
+@if (!string.IsNullOrEmpty(warning))
+{
+    <div class="alert alert-warning">@warning</div>
+}
+
+@if (Model.Count == 0)
+{
+    <div class="card placeholder-card">
+        <div class="card-body text-center text-muted py-5">
+            Aquí se mostrará el listado de productos.
+        </div>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Proveedor</th>
+                    <th>Unidad</th>
+                    <th class="text-end">Stock mín.</th>
+                    <th class="text-end">Stock máx.</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td>@p.SKU</td>
+                        <td>@p.Name</td>
+                        <td>@p.CategoryName</td>
+                        <td>@p.SupplierName</td>
+                        <td>@p.UnitOfMeasure</td>
+                        <td class="text-end">@p.MinimumStock</td>
+                        <td class="text-end">@p.MaximumStock</td>
+                        <td>
+                            @if (p.IsActive)
+                            {
+                                <span class="badge bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactivo</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
