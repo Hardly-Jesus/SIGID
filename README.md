@@ -2,23 +2,23 @@
 
 Proyecto académico para la gestión de inventarios y el análisis de la demanda de productos.
 
-Este repositorio contiene la **estructura inicial** de la solución (Sprint 1): arquitectura Onion, persistencia con Entity Framework Core sobre SQL Server, entidades base (Producto, Categoría, Proveedor) y las pantallas iniciales del módulo de productos.
+**Estado actual: Sprint 2.** Incluye la gestión completa del catálogo (productos, categorías y proveedores) y del inventario (entradas, salidas e historial de movimientos), con persistencia en SQL Server mediante Entity Framework Core.
 
 ## Tecnologías
 
 - C# / .NET 9
 - ASP.NET Core MVC con Razor Views
 - Entity Framework Core 9 (proveedor SQL Server)
-- SQL Server (LocalDB en desarrollo)
-- Bootstrap 5 (incluido localmente en `wwwroot/lib`)
-- xUnit (proyectos de pruebas, aún sin pruebas)
+- SQL Server (LocalDB, Express o instancia local)
+- HTML, CSS y JavaScript sencillo (sin frameworks de interfaz)
+- xUnit para pruebas
 - Git / GitHub
 
 ## Requisitos
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 - Visual Studio 2022 (versión 17.12 o superior) o Visual Studio 2026 con la carga de trabajo **ASP.NET y desarrollo web**
-- SQL Server o SQL Server Express LocalDB (se instala con Visual Studio)
+- SQL Server o SQL Server Express LocalDB
 - Git
 
 ## Arquitectura
@@ -34,104 +34,112 @@ SIGID.Web  ──►  SIGID.Application  ──►  SIGID.Domain
 
 | Proyecto | Responsabilidad | Depende de |
 |---|---|---|
-| `SIGID.Domain` | Entidades del negocio (`Product`, `Category`, `Supplier`) | — |
-| `SIGID.Application` | Interfaces de repositorios y servicios, DTOs y lógica de negocio | Domain |
-| `SIGID.Infrastructure` | `SigidDbContext`, configuraciones EF Core, repositorios, migraciones | Application, Domain |
-| `SIGID.Web` | Controllers, Views, ViewModels, configuración y composición de la DI | Application, Infrastructure |
+| `SIGID.Domain` | Entidades (`Product`, `Category`, `Supplier`, `InventoryMovement`) y enumerados | — |
+| `SIGID.Application` | Interfaces de repositorios y servicios, DTOs, servicios y reglas de negocio | Domain |
+| `SIGID.Infrastructure` | `SigidDbContext`, configuraciones EF Core, repositorios y migraciones | Application, Domain |
+| `SIGID.Web` | Controllers, Views, ViewModels, estilos y composición de la DI | Application, Infrastructure |
 
-Flujo de una operación: **View → Controller → Service → Repository → SQL Server**.
-Los controllers nunca acceden directamente al `DbContext`.
+Flujo de cada operación: **View → Controller → Service → Repository → SQL Server**.
+Los controllers no acceden al `DbContext` ni contienen reglas de negocio; los errores de negocio llegan como `BusinessException` y se muestran junto al campo correspondiente.
 
-## Estructura
+## Módulos del Sprint 2
 
-```
-SIGID/
-├── SIGID.sln
-├── src/
-│   ├── SIGID.Domain/           Entities/, Enums/
-│   ├── SIGID.Application/      Interfaces/, Services/, DTOs/
-│   ├── SIGID.Infrastructure/   Persistence/ (DbContext, Configurations, Repositories, Migrations), DependencyInjection.cs
-│   └── SIGID.Web/              Controllers/, Views/, ViewModels/, wwwroot/
-└── tests/
-    ├── SIGID.Domain.Tests/
-    └── SIGID.Application.Tests/
-```
+| Módulo | Ruta | Qué permite |
+|---|---|---|
+| Dashboard | `/Dashboard` | Indicadores calculados con los datos reales: productos activos, sin existencias, con stock bajo, movimientos recientes |
+| Productos (HU-05) | `/Products` | Registrar, consultar y editar productos. Categoría y proveedor se eligen de los registrados |
+| Categorías (HU-06) | `/Categories` | CRUD completo. No se elimina una categoría con productos |
+| Proveedores (HU-07) | `/Suppliers` | CRUD completo. Identificación/RNC opcional y única. No se elimina un proveedor con productos |
+| Entradas (HU-08) | `/Inventory/Entries` | Registrar y consultar entradas; suman a las existencias |
+| Salidas (HU-09) | `/Inventory/Exits` | Registrar y consultar salidas; no permiten existencias negativas |
+| Historial (HU-10) | `/Inventory/History` | Movimientos del más reciente al más antiguo, con filtros por producto, tipo y fechas |
+
+### Reglas de inventario
+
+- `MinimumStock` y `MaximumStock` son umbrales de referencia. Las existencias reales están en `Product.CurrentStock`.
+- Un producto nuevo empieza con **0 existencias**. Solo cambian con entradas (suman) y salidas (restan).
+- Cada entrada o salida guarda un `InventoryMovement` con la existencia resultante (`StockAfter`).
+- El cambio de existencias y el movimiento se guardan en **una sola transacción**.
+- La salida descuenta con un `UPDATE ... WHERE CurrentStock >= cantidad`, de modo que dos salidas simultáneas no pueden consumir las mismas unidades. Además, la base de datos tiene la restricción `CK_Products_CurrentStock` (`CurrentStock >= 0`).
+- Los productos inactivos no admiten movimientos.
+- Stock bajo: el producto tiene unidades, pero `CurrentStock <= MinimumStock`.
 
 ## Cómo ejecutar
 
-1. Clonar el repositorio:
-   ```bash
-   git clone <url-del-repositorio>
-   cd SIGID
-   ```
-2. Abrir `SIGID.sln` en Visual Studio (los paquetes NuGet se restauran automáticamente) o restaurar desde consola:
+1. Abrir `SIGID.sln` en Visual Studio (los paquetes NuGet se restauran automáticamente) o desde consola:
    ```bash
    dotnet restore
    ```
-3. Revisar la cadena de conexión `DefaultConnection` en `src/SIGID.Web/appsettings.Development.json`.
-   Por defecto usa LocalDB con autenticación de Windows (sin credenciales en el código):
+2. Revisar la cadena `DefaultConnection` en `src/SIGID.Web/appsettings.json` **y** en `src/SIGID.Web/appsettings.Development.json`. Ambas deben apuntar al mismo servidor y a la misma base:
    ```
-   Server=(localdb)\mssqllocaldb;Database=SIGID_Dev;Trusted_Connection=True;...
+   Server=(localdb)\\mssqllocaldb;Database=SIGID;Trusted_Connection=True;...   ← LocalDB
+   Server=.;Database=SIGID;Trusted_Connection=True;...                          ← instancia local por defecto
+   Server=.\\SQLEXPRESS;Database=SIGID;Trusted_Connection=True;...              ← SQL Server Express
    ```
    Si se necesita usuario y contraseña, **no** los escriba en `appsettings`; use User Secrets:
    ```bash
    dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<cadena-con-credenciales>" --project src/SIGID.Web
    ```
-4. Crear la migración inicial y la base de datos (ver sección siguiente).
-5. Establecer `SIGID.Web` como proyecto de inicio y ejecutar (F5), o:
+3. Aplicar las migraciones (ver sección siguiente).
+4. Establecer `SIGID.Web` como proyecto de inicio y ejecutar (F5), o:
    ```bash
    dotnet run --project src/SIGID.Web
    ```
 
-> La aplicación arranca aunque la base de datos todavía no exista; la pantalla de productos mostrará un aviso hasta que se apliquen las migraciones.
-
 ## Migraciones (Entity Framework Core)
 
-Las migraciones se guardan en `src/SIGID.Infrastructure/Persistence/Migrations`.
+Las migraciones están en `src/SIGID.Infrastructure/Persistence/Migrations`:
 
-**Consola del Administrador de paquetes (Visual Studio)** — proyecto predeterminado: `SIGID.Infrastructure`, proyecto de inicio: `SIGID.Web`:
+| Migración | Contenido |
+|---|---|
+| `InitialCreate` (Sprint 1) | Tablas `Categories`, `Suppliers` y `Products` |
+| `Sprint2Inventory` (Sprint 2) | Columna `Products.CurrentStock` (0 para los productos existentes) y su restricción `>= 0`; `Suppliers.Identification` pasa a ser opcional con índice único filtrado; nueva tabla `InventoryMovements` |
+
+La migración del Sprint 2 **no borra datos**: los productos, categorías y proveedores existentes se conservan.
+
+**Consola del Administrador de paquetes (Visual Studio):**
 
 ```powershell
-Add-Migration InitialCreate -OutputDir Persistence/Migrations
-Update-Database
+Update-Database -Project SIGID.Infrastructure -StartupProject SIGID.Web
 ```
 
 **CLI de .NET** (requiere `dotnet tool install --global dotnet-ef --version 9.*`):
 
 ```bash
-dotnet ef migrations add InitialCreate --project src/SIGID.Infrastructure --startup-project src/SIGID.Web --output-dir Persistence/Migrations
 dotnet ef database update --project src/SIGID.Infrastructure --startup-project src/SIGID.Web
 ```
 
-La migración inicial crea las tablas `Categories`, `Suppliers` y `Products` con:
+Para futuros cambios del modelo:
 
-- Claves primarias en las tres tablas.
-- Claves foráneas `Products.CategoryId → Categories.Id` y `Products.SupplierId → Suppliers.Id` (borrado restringido).
-- Índices únicos en `Products.SKU`, `Categories.Name` y `Suppliers.Identification`.
-- Restricciones de stock: `MinimumStock >= 0` y `MaximumStock >= MinimumStock`.
+```powershell
+Add-Migration NombreDelCambio -Project SIGID.Infrastructure -StartupProject SIGID.Web -OutputDir Persistence/Migrations
+```
 
 ## Pruebas
 
-Los proyectos `SIGID.Domain.Tests` y `SIGID.Application.Tests` están configurados con xUnit, pero todavía no contienen pruebas.
+- `SIGID.Domain.Tests`: regla de estado de existencias del producto.
+- `SIGID.Application.Tests`: reglas de negocio de productos, categorías, proveedores, inventario y dashboard. Usan repositorios en memoria (`Fakes/`), sin necesidad de SQL Server.
 
 ```bash
 dotnet test
 ```
 
+En Visual Studio: **Prueba → Ejecutar todas las pruebas**.
+
+## Comprobación manual del Sprint 2
+
+1. Crear una categoría y un proveedor; intentar repetir el nombre de la categoría o el RNC del proveedor.
+2. Registrar un producto (empieza con 0 existencias); probar SKU repetido, sin categoría o con máximo menor que mínimo.
+3. Registrar una entrada y comprobar que las existencias suben.
+4. Registrar una salida mayor a las existencias (debe rechazarse) y otra válida.
+5. Consultar el historial y aplicar filtros por producto, tipo y fechas.
+6. Intentar eliminar la categoría o el proveedor del producto (debe bloquearse).
+7. Revisar las tablas en SQL Server: `Products.CurrentStock` y `InventoryMovements`.
+
 ## Flujo de trabajo con Git
 
 - `main`: versión estable / entregas.
 - `develop`: integración del sprint en curso.
-- `feature/<nombre>`: una rama por historia o tarea (por ejemplo `feature/hu-05-registro-productos`), creada desde `develop` y fusionada mediante Pull Request.
+- `feature/<nombre>`: una rama por historia o tarea (por ejemplo `feature/hu-08-entradas`), creada desde `develop` y fusionada mediante Pull Request.
 
 No se deben subir `bin/`, `obj/`, `.vs/` ni archivos con credenciales (ya excluidos en `.gitignore`).
-
-## Estado del Sprint 1
-
-| Historia | Estado |
-|---|---|
-| HU-01 Repositorio y control de versiones | Archivos base listos (`.gitignore`, `.editorconfig`, `README.md`) |
-| HU-02 Solución y arquitectura Onion | Estructura y referencias entre capas configuradas |
-| HU-03 Base de datos y persistencia | EF Core + SQL Server + `SigidDbContext` configurados |
-| HU-04 Entidades iniciales | `Product`, `Category`, `Supplier` y sus relaciones configuradas |
-| HU-05 Registrar y consultar productos | Estructura base (repositorio, servicio, controller y vistas); pendiente cargar categorías y proveedores en el formulario y validar el flujo completo |

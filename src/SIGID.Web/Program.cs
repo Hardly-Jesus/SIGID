@@ -1,5 +1,9 @@
 using SIGID.Application.Interfaces.Services;
+using SIGID.Application.Services.Categories;
+using SIGID.Application.Services.Dashboard;
+using SIGID.Application.Services.Inventory;
 using SIGID.Application.Services.Products;
+using SIGID.Application.Services.Suppliers;
 using SIGID.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +22,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Capa Application: servicios
 // ---------------------------------------------------------------
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 var app = builder.Build();
 

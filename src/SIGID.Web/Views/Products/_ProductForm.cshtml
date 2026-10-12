@@ -1,0 +1,130 @@
+@model ProductViewModel
+@{
+    var isEdit = Model.Id > 0;
+    var missingCatalog = !Model.Categories.Any() || !Model.Suppliers.Any();
+}
+
+@if (missingCatalog)
+{
+    <div class="notice notice-info">
+        <svg class="icon"><use href="#i-info" /></svg>
+        <span>
+            Para registrar un producto necesitas al menos una categoría y un proveedor activos.
+            @if (!Model.Categories.Any())
+            {
+                <a asp-controller="Categories" asp-action="Create">Crear categoría</a>
+            }
+            @if (!Model.Categories.Any() && !Model.Suppliers.Any())
+            {
+                <text> o </text>
+            }
+            @if (!Model.Suppliers.Any())
+            {
+                <a asp-controller="Suppliers" asp-action="Create">crear proveedor</a>
+            }
+        </span>
+    </div>
+}
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" novalidate class="panel form-panel">
+    @if (isEdit)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+
+    <div asp-validation-summary="ModelOnly" class="notice notice-error" style="margin: 22px 24px 0;"></div>
+
+    <div class="form-section">
+        <h2 class="form-section-title">Identificación</h2>
+        <p class="form-section-note">El SKU es el código único del producto. Se guarda en mayúsculas.</p>
+        <div class="form-grid">
+            <div class="field col-2">
+                <label asp-for="SKU" class="field-label required"></label>
+                <input asp-for="SKU" class="input" maxlength="50" autocomplete="off" placeholder="BEB-001" />
+                <span asp-validation-for="SKU"></span>
+            </div>
+            <div class="field col-4">
+                <label asp-for="Name" class="field-label required"></label>
+                <input asp-for="Name" class="input" maxlength="150" />
+                <span asp-validation-for="Name"></span>
+            </div>
+            <div class="field col-6">
+                <label asp-for="Description" class="field-label"></label>
+                <textarea asp-for="Description" class="textarea" rows="3" maxlength="500"></textarea>
+                <span asp-validation-for="Description"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2 class="form-section-title">Clasificación</h2>
+        <div class="form-grid">
+            <div class="field col-3">
+                <label asp-for="CategoryId" class="field-label required"></label>
+                <select asp-for="CategoryId" asp-items="Model.Categories" class="select">
+                    <option value="0">Seleccione una categoría</option>
+                </select>
+                <span asp-validation-for="CategoryId"></span>
+            </div>
+            <div class="field col-3">
+                <label asp-for="SupplierId" class="field-label required"></label>
+                <select asp-for="SupplierId" asp-items="Model.Suppliers" class="select">
+                    <option value="0">Seleccione un proveedor</option>
+                </select>
+                <span asp-validation-for="SupplierId"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2 class="form-section-title">Inventario</h2>
+        <p class="form-section-note">El stock mínimo y máximo son umbrales de referencia. Las existencias cambian solo con entradas y salidas.</p>
+        <div class="form-grid">
+            <div class="field col-2">
+                <label asp-for="UnitOfMeasure" class="field-label required"></label>
+                <select asp-for="UnitOfMeasure" asp-items="ProductViewModel.UnitsOfMeasure" class="select">
+                    <option value="">Seleccione</option>
+                </select>
+                <span asp-validation-for="UnitOfMeasure"></span>
+            </div>
+            <div class="field col-2">
+                <label asp-for="MinimumStock" class="field-label required"></label>
+                <input asp-for="MinimumStock" class="input" type="number" min="0" step="1" inputmode="numeric" />
+                <span asp-validation-for="MinimumStock"></span>
+            </div>
+            <div class="field col-2">
+                <label asp-for="MaximumStock" class="field-label required"></label>
+                <input asp-for="MaximumStock" class="input" type="number" min="0" step="1" inputmode="numeric" />
+                <span asp-validation-for="MaximumStock"></span>
+            </div>
+            @if (isEdit)
+            {
+                <div class="field col-6">
+                    <span class="field-label">Existencias actuales</span>
+                    <div class="readonly-figure">
+                        <partial name="_StockMeter" model="Model" />
+                        <span class="field-hint">Para modificarlas registra una
+                            <a asp-controller="Inventory" asp-action="CreateEntry" asp-route-productId="@Model.Id">entrada</a> o una
+                            <a asp-controller="Inventory" asp-action="CreateExit" asp-route-productId="@Model.Id">salida</a>.</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="form-section">
+        <label class="switch">
+            <input asp-for="IsActive" />
+            <span class="switch-track"></span>
+            <span class="switch-text">
+                <strong>Producto activo</strong>
+                <small>Los productos inactivos no admiten entradas ni salidas.</small>
+            </span>
+        </label>
+    </div>
+
+    <div class="form-actions">
+        <a class="btn btn-quiet" asp-action="Index">Cancelar</a>
+        <button type="submit" class="btn btn-primary">@(isEdit ? "Guardar cambios" : "Registrar producto")</button>
+    </div>
+</form>

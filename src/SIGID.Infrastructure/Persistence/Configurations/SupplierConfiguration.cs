@@ -16,8 +16,8 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
             .IsRequired()
             .HasMaxLength(150);
 
+        // Identificación/RNC opcional: el índice único solo aplica a los valores no nulos.
         builder.Property(s => s.Identification)
-            .IsRequired()
             .HasMaxLength(30);
 
         builder.Property(s => s.Phone)
@@ -34,6 +34,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
             .HasDefaultValue(true);
 
         builder.HasIndex(s => s.Identification)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[Identification] IS NOT NULL");
     }
 }

@@ -1,0 +1,43 @@
+@model CategoryViewModel
+@{
+    ViewData["Title"] = "Eliminar categoría";
+    var blocked = Model.ProductCount > 0;
+}
+
+<section class="panel confirm">
+    <div class="confirm-body">
+        <span class="confirm-icon @(blocked ? "is-blocked" : "")"><svg class="icon"><use href="@(blocked ? "#i-alert" : "#i-trash")" /></svg></span>
+        <div>
+            @if (blocked)
+            {
+                <h2>No se puede eliminar «@Model.Name»</h2>
+                <p>Tiene @Model.ProductCount @(Model.ProductCount == 1 ? "producto asociado" : "productos asociados"). Cambia la categoría de esos productos o márcala como inactiva.</p>
+            }
+            else
+            {
+                <h2>¿Eliminar la categoría «@Model.Name»?</h2>
+                <p>Esta acción no se puede deshacer.</p>
+            }
+            <dl class="detail-list">
+                <dt>Descripción</dt>
+                <dd>@(string.IsNullOrEmpty(Model.Description) ? "—" : Model.Description)</dd>
+                <dt>Estado</dt>
+                <dd><partial name="_ActiveChip" model="Model.IsActive" /></dd>
+                <dt>Productos</dt>
+                <dd>@Model.ProductCount</dd>
+            </dl>
+        </div>
+    </div>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="form-actions">
+        @if (blocked)
+        {
+            <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@Model.Id">Editar categoría</a>
+            <a class="btn btn-primary" asp-action="Index">Volver al listado</a>
+        }
+        else
+        {
+            <a class="btn btn-quiet" asp-action="Index">Cancelar</a>
+            <button type="submit" class="btn btn-danger"><svg class="icon"><use href="#i-trash" /></svg> Eliminar categoría</button>
+        }
+    </form>
+</section>

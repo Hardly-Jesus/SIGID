@@ -1,0 +1,10 @@
+@model SupplierViewModel
+@{
+    ViewData["Title"] = "Nuevo proveedor";
+}
+
+@section PageActions {
+    <a class="btn btn-quiet" asp-action="Index"><svg class="icon"><use href="#i-back" /></svg> Proveedores</a>
+}
+
+<partial name="_SupplierForm" model="Model" />

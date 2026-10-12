@@ -1,0 +1,11 @@
+@model MovementFormViewModel
+@{
+    ViewData["Title"] = "Registrar salida";
+    ViewData["Subtitle"] = "Descuenta unidades de las existencias disponibles";
+}
+
+@section PageActions {
+    <a class="btn btn-quiet" asp-action="Exits"><svg class="icon"><use href="#i-back" /></svg> Salidas</a>
+}
+
+<partial name="_MovementForm" model="Model" />

@@ -1,89 +1,11 @@
 @model ProductViewModel
-@using Microsoft.AspNetCore.Mvc.Rendering
 @{
     ViewData["Title"] = "Nuevo producto";
-
-    // Mientras no existan los módulos de Categorías y Proveedores, las listas llegan vacías.
-    // Si el producto ya tiene una categoría/proveedor asignado, se muestra como opción.
-    var categories = Model.Categories.ToList();
-    if (categories.Count == 0 && Model.CategoryId > 0)
-        categories.Add(new SelectListItem(Model.CategoryName ?? $"Categoría #{Model.CategoryId}", Model.CategoryId.ToString()));
-
-    var suppliers = Model.Suppliers.ToList();
-    if (suppliers.Count == 0 && Model.SupplierId > 0)
-        suppliers.Add(new SelectListItem(Model.SupplierName ?? $"Proveedor #{Model.SupplierId}", Model.SupplierId.ToString()));
+    ViewData["Subtitle"] = "Registra un producto en el catálogo";
 }
 
-<h1 class="h3 mb-3">Nuevo producto</h1>
+@section PageActions {
+    <a class="btn btn-quiet" asp-action="Index"><svg class="icon"><use href="#i-back" /></svg> Productos</a>
+}
 
-<div class="card">
-    <div class="card-body">
-        <form asp-action="Create" method="post" novalidate>
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label asp-for="SKU" class="form-label"></label>
-                    <input asp-for="SKU" class="form-control" maxlength="50" />
-                    <span asp-validation-for="SKU" class="text-danger small"></span>
-                </div>
-                <div class="col-md-8">
-                    <label asp-for="Name" class="form-label"></label>
-                    <input asp-for="Name" class="form-control" maxlength="150" />
-                    <span asp-validation-for="Name" class="text-danger small"></span>
-                </div>
-
-                <div class="col-12">
-                    <label asp-for="Description" class="form-label"></label>
-                    <textarea asp-for="Description" class="form-control" rows="3" maxlength="500"></textarea>
-                    <span asp-validation-for="Description" class="text-danger small"></span>
-                </div>
-
-                <div class="col-md-6">
-                    <label asp-for="CategoryId" class="form-label"></label>
-                    <select asp-for="CategoryId" asp-items="categories" class="form-select">
-                        <option value="0">-- Seleccione una categoría --</option>
-                    </select>
-                    <span asp-validation-for="CategoryId" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="SupplierId" class="form-label"></label>
-                    <select asp-for="SupplierId" asp-items="suppliers" class="form-select">
-                        <option value="0">-- Seleccione un proveedor --</option>
-                    </select>
-                    <span asp-validation-for="SupplierId" class="text-danger small"></span>
-                </div>
-
-                <div class="col-md-4">
-                    <label asp-for="UnitOfMeasure" class="form-label"></label>
-                    <select asp-for="UnitOfMeasure" asp-items="ProductViewModel.UnitsOfMeasure" class="form-select">
-                        <option value="">-- Seleccione --</option>
-                    </select>
-                    <span asp-validation-for="UnitOfMeasure" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label asp-for="MinimumStock" class="form-label"></label>
-                    <input asp-for="MinimumStock" class="form-control" min="0" />
-                    <span asp-validation-for="MinimumStock" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label asp-for="MaximumStock" class="form-label"></label>
-                    <input asp-for="MaximumStock" class="form-control" min="0" />
-                    <span asp-validation-for="MaximumStock" class="text-danger small"></span>
-                </div>
-
-                <div class="col-12">
-                    <div class="form-check">
-                        <input asp-for="IsActive" class="form-check-input" />
-                        <label asp-for="IsActive" class="form-check-label"></label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Guardar</button>
-                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
-            </div>
-        </form>
-    </div>
-</div>
+<partial name="_ProductForm" model="Model" />

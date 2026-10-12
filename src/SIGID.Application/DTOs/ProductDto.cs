@@ -1,3 +1,5 @@
+using SIGID.Domain.Enums;
+
 namespace SIGID.Application.DTOs;
 
 /// <summary>
@@ -26,6 +28,14 @@ public class ProductDto
     public int MinimumStock { get; set; }
 
     public int MaximumStock { get; set; }
+
+    /// <summary>
+    /// Existencias actuales. Solo lectura desde el formulario de productos;
+    /// se modifica con entradas y salidas de inventario.
+    /// </summary>
+    public int CurrentStock { get; set; }
+
+    public StockStatus StockStatus { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

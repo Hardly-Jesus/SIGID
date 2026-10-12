@@ -11,9 +11,10 @@ public class Supplier
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Identificación tributaria o documento del proveedor (NIT, RUC, etc.).
+    /// Identificación tributaria del proveedor (RNC, NIT, etc.).
+    /// Es opcional, pero si se indica debe ser única.
     /// </summary>
-    public string Identification { get; set; } = string.Empty;
+    public string? Identification { get; set; }
 
     public string? Phone { get; set; }
 

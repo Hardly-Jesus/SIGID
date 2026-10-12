@@ -1,0 +1,11 @@
+@model SupplierViewModel
+@{
+    ViewData["Title"] = "Editar proveedor";
+    ViewData["Subtitle"] = Model.ProductCount == 1 ? "1 producto asociado" : $"{Model.ProductCount} productos asociados";
+}
+
+@section PageActions {
+    <a class="btn btn-quiet" asp-action="Index"><svg class="icon"><use href="#i-back" /></svg> Proveedores</a>
+}
+
+<partial name="_SupplierForm" model="Model" />

@@ -1,12 +1,21 @@
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = "Algo salió mal";
     var requestId = ViewData["RequestId"] as string;
 }
 
-<h1 class="text-danger">Error</h1>
-<h2 class="h5 text-danger">Ocurrió un error al procesar la solicitud.</h2>
-
-@if (!string.IsNullOrEmpty(requestId))
-{
-    <p><strong>Request ID:</strong> <code>@requestId</code></p>
-}
+<section class="panel confirm">
+    <div class="confirm-body">
+        <span class="confirm-icon"><svg class="icon"><use href="#i-alert" /></svg></span>
+        <div>
+            <h2>No se pudo completar la solicitud</h2>
+            <p>Verifica que la base de datos esté disponible y que las migraciones estén aplicadas. Si el problema continúa, comunícalo al equipo indicando el código de abajo.</p>
+            @if (!string.IsNullOrEmpty(requestId))
+            {
+                <dl class="detail-list"><dt>Código</dt><dd class="num">@requestId</dd></dl>
+            }
+        </div>
+    </div>
+    <div class="form-actions">
+        <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Volver al inicio</a>
+    </div>
+</section>

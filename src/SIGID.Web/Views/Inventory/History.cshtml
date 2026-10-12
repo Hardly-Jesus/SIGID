@@ -1,0 +1,87 @@
+@model MovementHistoryViewModel
+@{
+    ViewData["Title"] = "Historial de movimientos";
+    ViewData["Subtitle"] = "Entradas y salidas registradas, de la más reciente a la más antigua";
+    var filterError = ViewData.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage
+        ?? ViewData.ModelState["FromDate"]?.Errors.FirstOrDefault()?.ErrorMessage;
+}
+
+<section class="panel">
+    <form method="get" asp-action="History" class="filters" role="search">
+        <div class="field">
+            <label class="field-label" for="productId">Producto</label>
+            <select class="select" id="productId" name="productId">
+                <option value="">Todos los productos</option>
+                @foreach (var p in Model.Products)
+                {
+                    <option value="@p.Id" selected="@(p.Id == Model.ProductId)">@p.SKU — @p.Name</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label" for="type">Tipo</label>
+            <select class="select" id="type" name="type">
+                <option value="">Entradas y salidas</option>
+                <option value="Entry" selected="@(Model.Type == MovementType.Entry)">Solo entradas</option>
+                <option value="Exit" selected="@(Model.Type == MovementType.Exit)">Solo salidas</option>
+            </select>
+        </div>
+        <div class="field">
+            <label class="field-label" for="from">Desde</label>
+            <input class="input" type="date" id="from" name="from" value="@Model.From?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label class="field-label" for="to">Hasta</label>
+            <input class="input" type="date" id="to" name="to" value="@Model.To?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="filters-actions">
+            <button type="submit" class="btn btn-primary"><svg class="icon"><use href="#i-filter" /></svg> Filtrar</button>
+            @if (Model.HasFilters)
+            {
+                <a class="btn btn-quiet" asp-action="History">Limpiar</a>
+            }
+        </div>
+    </form>
+
+    @if (filterError is not null)
+    {
+        <div class="notice notice-error" style="margin: 0 22px 18px;">
+            <svg class="icon"><use href="#i-alert" /></svg><span>@filterError</span>
+        </div>
+    }
+
+    @if (Model.Movements.Count == 0)
+    {
+        <div class="empty" style="border-top: 1px solid var(--border);">
+            <span class="empty-icon"><svg class="icon"><use href="#i-history" /></svg></span>
+            @if (Model.HasFilters)
+            {
+                <h3>No hay movimientos con estos filtros</h3>
+                <p>Prueba con otro producto, otro tipo de movimiento o un rango de fechas más amplio.</p>
+                <a class="btn btn-secondary" asp-action="History">Ver todos los movimientos</a>
+            }
+            else
+            {
+                <h3>Aún no hay movimientos</h3>
+                <p>Las entradas y salidas que registres aparecerán aquí, ordenadas de la más reciente a la más antigua.</p>
+                <a class="btn btn-primary" asp-action="CreateEntry"><svg class="icon"><use href="#i-plus" /></svg> Registrar entrada</a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="result-bar" style="border-bottom: 1px solid var(--border);">
+            <span><strong>@Model.Movements.Count</strong> @(Model.Movements.Count == 1 ? "movimiento" : "movimientos")@(Model.HasFilters ? " con los filtros aplicados" : "")</span>
+            @if (Model.ProductId.HasValue)
+            {
+                @* Los totales solo se suman para un mismo producto (misma unidad de medida). *@
+                var unit = Model.Movements[0].UnitOfMeasure;
+                <span class="result-totals">
+                    <span>Entradas: <strong class="qty-in">+@Model.TotalEntries @unit</strong></span>
+                    <span>Salidas: <strong>−@Model.TotalExits @unit</strong></span>
+                </span>
+            }
+        </div>
+        <partial name="_MovementTable" model="Model.Movements" />
+    }
+</section>

@@ -1,0 +1,66 @@
+@model SupplierViewModel
+@{
+    var isEdit = Model.Id > 0;
+}
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" novalidate class="panel form-panel">
+    @if (isEdit)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+
+    <div asp-validation-summary="ModelOnly" class="notice notice-error" style="margin: 22px 24px 0;"></div>
+
+    <div class="form-section">
+        <h2 class="form-section-title">Datos generales</h2>
+        <div class="form-grid">
+            <div class="field col-4">
+                <label asp-for="Name" class="field-label required"></label>
+                <input asp-for="Name" class="input" maxlength="150" autocomplete="organization" />
+                <span asp-validation-for="Name"></span>
+            </div>
+            <div class="field col-2">
+                <label asp-for="Identification" class="field-label"></label>
+                <input asp-for="Identification" class="input" maxlength="30" autocomplete="off" />
+                <span class="field-hint">Opcional. Si se indica, no puede repetirse.</span>
+                <span asp-validation-for="Identification"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2 class="form-section-title">Contacto</h2>
+        <div class="form-grid">
+            <div class="field col-3">
+                <label asp-for="Phone" class="field-label"></label>
+                <input asp-for="Phone" class="input" type="tel" maxlength="30" autocomplete="tel" placeholder="+591 2 2456789" />
+                <span asp-validation-for="Phone"></span>
+            </div>
+            <div class="field col-3">
+                <label asp-for="Email" class="field-label"></label>
+                <input asp-for="Email" class="input" type="email" maxlength="150" autocomplete="email" placeholder="ventas@empresa.com" />
+                <span asp-validation-for="Email"></span>
+            </div>
+            <div class="field col-6">
+                <label asp-for="Address" class="field-label"></label>
+                <input asp-for="Address" class="input" maxlength="250" autocomplete="street-address" />
+                <span asp-validation-for="Address"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <label class="switch">
+            <input asp-for="IsActive" />
+            <span class="switch-track"></span>
+            <span class="switch-text">
+                <strong>Proveedor activo</strong>
+                <small>Los proveedores inactivos no se ofrecen al registrar productos nuevos.</small>
+            </span>
+        </label>
+    </div>
+
+    <div class="form-actions">
+        <a class="btn btn-quiet" asp-action="Index">Cancelar</a>
+        <button type="submit" class="btn btn-primary">@(isEdit ? "Guardar cambios" : "Registrar proveedor")</button>
+    </div>
+</form>

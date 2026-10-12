@@ -1,0 +1,43 @@
+@model CategoryViewModel
+@{
+    var isEdit = Model.Id > 0;
+}
+<form asp-action="@(isEdit ? "Edit" : "Create")" method="post" novalidate class="panel form-panel">
+    @if (isEdit)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+
+    <div asp-validation-summary="ModelOnly" class="notice notice-error" style="margin: 22px 24px 0;"></div>
+
+    <div class="form-section">
+        <div class="form-grid" style="margin-top:0">
+            <div class="field col-4">
+                <label asp-for="Name" class="field-label required"></label>
+                <input asp-for="Name" class="input" maxlength="100" autocomplete="off" placeholder="Por ejemplo: Bebidas" />
+                <span asp-validation-for="Name"></span>
+            </div>
+            <div class="field col-6">
+                <label asp-for="Description" class="field-label"></label>
+                <textarea asp-for="Description" class="textarea" rows="3" maxlength="500" placeholder="Opcional"></textarea>
+                <span asp-validation-for="Description"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <label class="switch">
+            <input asp-for="IsActive" />
+            <span class="switch-track"></span>
+            <span class="switch-text">
+                <strong>Categoría activa</strong>
+                <small>Las categorías inactivas no se ofrecen al registrar productos nuevos.</small>
+            </span>
+        </label>
+    </div>
+
+    <div class="form-actions">
+        <a class="btn btn-quiet" asp-action="Index">Cancelar</a>
+        <button type="submit" class="btn btn-primary">@(isEdit ? "Guardar cambios" : "Crear categoría")</button>
+    </div>
+</form>

@@ -1,11 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SIGID.Application.DTOs;
+using SIGID.Domain.Enums;
 
 namespace SIGID.Web.ViewModels;
 
 /// <summary>
-/// Modelo de la vista de productos con las validaciones del formulario (TASK 5.6).
+/// Modelo de la vista de productos con las validaciones del formulario.
+/// Las mismas reglas se vuelven a validar en ProductService.
 /// </summary>
 public class ProductViewModel : IValidatableObject
 {
@@ -27,13 +29,13 @@ public class ProductViewModel : IValidatableObject
     public string? Description { get; set; }
 
     [Display(Name = "Categoría")]
-    [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar una categoría.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Seleccione una categoría.")]
     public int CategoryId { get; set; }
 
     public string? CategoryName { get; set; }
 
     [Display(Name = "Proveedor")]
-    [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un proveedor.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Seleccione un proveedor.")]
     public int SupplierId { get; set; }
 
     public string? SupplierName { get; set; }
@@ -44,29 +46,42 @@ public class ProductViewModel : IValidatableObject
     public string UnitOfMeasure { get; set; } = string.Empty;
 
     [Display(Name = "Stock mínimo")]
-    [Range(0, int.MaxValue, ErrorMessage = "El stock mínimo no puede ser negativo.")]
+    [Range(0, 1_000_000, ErrorMessage = "El stock mínimo debe estar entre 0 y 1.000.000.")]
     public int MinimumStock { get; set; }
 
     [Display(Name = "Stock máximo")]
-    [Range(0, int.MaxValue, ErrorMessage = "El stock máximo no puede ser negativo.")]
+    [Range(0, 1_000_000, ErrorMessage = "El stock máximo debe estar entre 0 y 1.000.000.")]
     public int MaximumStock { get; set; }
 
-    [Display(Name = "Activo")]
+    /// <summary>
+    /// Solo lectura: las existencias cambian con entradas y salidas de inventario.
+    /// </summary>
+    public int CurrentStock { get; set; }
+
+    public StockStatus StockStatus { get; set; }
+
+    [Display(Name = "Producto activo")]
     public bool IsActive { get; set; } = true;
 
-    // Listas para los desplegables. Se llenarán cuando existan los servicios
-    // de Categorías y Proveedores (sprints posteriores).
+    // Opciones de los desplegables, cargadas desde la base de datos por el controlador.
     public IEnumerable<SelectListItem> Categories { get; set; } = Enumerable.Empty<SelectListItem>();
 
     public IEnumerable<SelectListItem> Suppliers { get; set; } = Enumerable.Empty<SelectListItem>();
 
+    /// <summary>
+    /// Unidades de medida permitidas (opciones fijas del dominio).
+    /// </summary>
     public static IEnumerable<SelectListItem> UnitsOfMeasure { get; } = new[]
     {
         new SelectListItem("Unidad (UND)", "UND"),
         new SelectListItem("Kilogramo (KG)", "KG"),
+        new SelectListItem("Gramo (G)", "G"),
         new SelectListItem("Litro (LT)", "LT"),
+        new SelectListItem("Mililitro (ML)", "ML"),
+        new SelectListItem("Metro (M)", "M"),
         new SelectListItem("Caja (CAJA)", "CAJA"),
-        new SelectListItem("Paquete (PAQ)", "PAQ")
+        new SelectListItem("Paquete (PAQ)", "PAQ"),
+        new SelectListItem("Docena (DOC)", "DOC")
     };
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -106,6 +121,8 @@ public class ProductViewModel : IValidatableObject
         UnitOfMeasure = dto.UnitOfMeasure,
         MinimumStock = dto.MinimumStock,
         MaximumStock = dto.MaximumStock,
+        CurrentStock = dto.CurrentStock,
+        StockStatus = dto.StockStatus,
         IsActive = dto.IsActive
     };
 }

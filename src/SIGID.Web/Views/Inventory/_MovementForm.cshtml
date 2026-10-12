@@ -1,0 +1,79 @@
+@model MovementFormViewModel
+@{
+    var action = Model.IsEntry ? "CreateEntry" : "CreateExit";
+    var products = Model.Products;
+}
+
+@if (products.Count == 0)
+{
+    <section class="panel form-panel">
+        <div class="empty">
+            <span class="empty-icon"><svg class="icon"><use href="#i-box" /></svg></span>
+            <h3>No hay productos activos</h3>
+            <p>Para registrar @(Model.IsEntry ? "una entrada" : "una salida") primero necesitas un producto activo en el catálogo.</p>
+            <a class="btn btn-primary" asp-controller="Products" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg> Registrar producto</a>
+        </div>
+    </section>
+}
+else
+{
+    <form asp-action="@action" method="post" novalidate class="panel form-panel" data-stock-form="@(Model.IsEntry ? "entry" : "exit")">
+        <div asp-validation-summary="ModelOnly" class="notice notice-error" style="margin: 22px 24px 0;"></div>
+
+        <div class="form-section">
+            <div class="form-grid" style="margin-top:0">
+                <div class="field col-6">
+                    <label asp-for="ProductId" class="field-label required"></label>
+                    <select asp-for="ProductId" class="select" data-product-select>
+                        <option value="0">Seleccione un producto</option>
+                        @foreach (var p in products)
+                        {
+                            <option value="@p.Id" data-stock="@p.CurrentStock" data-unit="@p.UnitOfMeasure" selected="@(p.Id == Model.ProductId)">
+                                @p.SKU — @p.Name (disponible: @p.CurrentStock @p.UnitOfMeasure)
+                            </option>
+                        }
+                    </select>
+                    <span asp-validation-for="ProductId"></span>
+                </div>
+
+                <div class="field col-6">
+                    <div class="stock-preview" data-stock-preview @(Model.SelectedProduct is null ? "hidden" : "")>
+                        <div>
+                            <span class="stock-preview-label">Existencia actual</span>
+                            <div class="stock-preview-value" data-current>@Model.SelectedProduct?.CurrentStock @Model.SelectedProduct?.UnitOfMeasure</div>
+                        </div>
+                        <div class="stock-preview-after" data-after-box hidden>
+                            <span class="stock-preview-label">Después @(Model.IsEntry ? "de la entrada" : "de la salida")</span>
+                            <div class="stock-preview-value" data-after></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field col-2">
+                    <label asp-for="Quantity" class="field-label required"></label>
+                    <input asp-for="Quantity" class="input" type="number" min="1" step="1" inputmode="numeric" data-quantity />
+                    <span asp-validation-for="Quantity"></span>
+                </div>
+                <div class="field col-4">
+                    <label asp-for="Date" class="field-label required"></label>
+                    <input asp-for="Date" class="input" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" max="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="Date"></span>
+                </div>
+                <div class="field col-6">
+                    <label asp-for="Description" class="field-label"></label>
+                    <textarea asp-for="Description" class="textarea" rows="2" maxlength="250"
+                              placeholder="@(Model.IsEntry ? "Por ejemplo: compra según factura 00123" : "Por ejemplo: despacho a sucursal centro")"></textarea>
+                    <span asp-validation-for="Description"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-quiet" asp-action="@(Model.IsEntry ? "Entries" : "Exits")">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+                <svg class="icon"><use href="@(Model.IsEntry ? "#i-entry" : "#i-exit")" /></svg>
+                @(Model.IsEntry ? "Registrar entrada" : "Registrar salida")
+            </button>
+        </div>
+    </form>
+}

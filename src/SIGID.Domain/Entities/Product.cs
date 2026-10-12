@@ -1,3 +1,5 @@
+using SIGID.Domain.Enums;
+
 namespace SIGID.Domain.Entities;
 
 /// <summary>
@@ -29,9 +31,36 @@ public class Product
     /// </summary>
     public string UnitOfMeasure { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Umbral de referencia: por debajo o igual a este valor el stock se considera bajo.
+    /// </summary>
     public int MinimumStock { get; set; }
 
+    /// <summary>
+    /// Umbral de referencia del stock máximo recomendado.
+    /// </summary>
     public int MaximumStock { get; set; }
 
+    /// <summary>
+    /// Existencias actuales (unidades disponibles). Un producto nuevo empieza en 0
+    /// y solo cambia mediante entradas y salidas de inventario.
+    /// </summary>
+    public int CurrentStock { get; set; }
+
     public bool IsActive { get; set; } = true;
+
+    public ICollection<InventoryMovement> Movements { get; set; } = new List<InventoryMovement>();
+
+    /// <summary>
+    /// Sin existencias: 0 unidades. Bajo: quedan unidades, pero en el mínimo o por debajo.
+    /// </summary>
+    public StockStatus GetStockStatus() => GetStockStatus(CurrentStock, MinimumStock);
+
+    public static StockStatus GetStockStatus(int currentStock, int minimumStock)
+    {
+        if (currentStock <= 0)
+            return StockStatus.OutOfStock;
+
+        return currentStock <= minimumStock ? StockStatus.Low : StockStatus.Normal;
+    }
 }

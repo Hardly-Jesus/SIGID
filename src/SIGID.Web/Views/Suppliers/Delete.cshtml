@@ -1,0 +1,45 @@
+@model SupplierViewModel
+@{
+    ViewData["Title"] = "Eliminar proveedor";
+    var blocked = Model.ProductCount > 0;
+}
+
+<section class="panel confirm">
+    <div class="confirm-body">
+        <span class="confirm-icon @(blocked ? "is-blocked" : "")"><svg class="icon"><use href="@(blocked ? "#i-alert" : "#i-trash")" /></svg></span>
+        <div>
+            @if (blocked)
+            {
+                <h2>No se puede eliminar «@Model.Name»</h2>
+                <p>Tiene @Model.ProductCount @(Model.ProductCount == 1 ? "producto asociado" : "productos asociados"). Asigna otro proveedor a esos productos o márcalo como inactivo.</p>
+            }
+            else
+            {
+                <h2>¿Eliminar el proveedor «@Model.Name»?</h2>
+                <p>Esta acción no se puede deshacer.</p>
+            }
+            <dl class="detail-list">
+                <dt>Identificación / RNC</dt>
+                <dd>@(string.IsNullOrEmpty(Model.Identification) ? "—" : Model.Identification)</dd>
+                <dt>Contacto</dt>
+                <dd>@(string.Join(" / ", new[] { Model.Email, Model.Phone }.Where(v => !string.IsNullOrEmpty(v))) is { Length: > 0 } contact ? contact : "—")</dd>
+                <dt>Estado</dt>
+                <dd><partial name="_ActiveChip" model="Model.IsActive" /></dd>
+                <dt>Productos</dt>
+                <dd>@Model.ProductCount</dd>
+            </dl>
+        </div>
+    </div>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="form-actions">
+        @if (blocked)
+        {
+            <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@Model.Id">Editar proveedor</a>
+            <a class="btn btn-primary" asp-action="Index">Volver al listado</a>
+        }
+        else
+        {
+            <a class="btn btn-quiet" asp-action="Index">Cancelar</a>
+            <button type="submit" class="btn btn-danger"><svg class="icon"><use href="#i-trash" /></svg> Eliminar proveedor</button>
+        }
+    </form>
+</section>

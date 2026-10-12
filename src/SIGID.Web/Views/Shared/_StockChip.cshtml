@@ -1,0 +1,17 @@
+@model ProductViewModel
+@if (!Model.IsActive)
+{
+    <span class="chip chip-inactive">Inactivo</span>
+}
+else if (Model.StockStatus == StockStatus.OutOfStock)
+{
+    <span class="chip chip-danger">Sin existencias</span>
+}
+else if (Model.StockStatus == StockStatus.Low)
+{
+    <span class="chip chip-warning">Stock bajo</span>
+}
+else
+{
+    <span class="chip chip-active">Disponible</span>
+}

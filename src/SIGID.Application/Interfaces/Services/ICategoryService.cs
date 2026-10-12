@@ -1,9 +1,18 @@
+using SIGID.Application.DTOs;
+
 namespace SIGID.Application.Interfaces.Services;
 
-/// <summary>
-/// Servicio de gestión de categorías.
-/// Se implementará en un sprint posterior (módulo Categorías).
-/// </summary>
 public interface ICategoryService
 {
+    Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<CategoryDto>> GetActiveAsync(CancellationToken cancellationToken = default);
+
+    Task<CategoryDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<int> CreateAsync(CategoryDto category, CancellationToken cancellationToken = default);
+
+    Task UpdateAsync(CategoryDto category, CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 }

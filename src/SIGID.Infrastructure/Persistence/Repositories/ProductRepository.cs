@@ -31,6 +31,17 @@ public class ProductRepository : IProductRepository
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
+    public async Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default)
+    {
+        var normalized = sku.Trim().ToUpper();
+
+        return await _context.Products
+            .AsNoTracking()
+            .Include(p => p.Category)
+            .Include(p => p.Supplier)
+            .FirstOrDefaultAsync(p => p.SKU == normalized, cancellationToken);
+    }
+
     public async Task<bool> ExistsBySkuAsync(string sku, int? excludeId = null, CancellationToken cancellationToken = default)
     {
         return await _context.Products
@@ -39,13 +50,16 @@ public class ProductRepository : IProductRepository
 
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
-        await _context.Products.AddAsync(product, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        _context.Products.Add(product);
+        await PersistenceErrors.SaveChangesAsync(_context, "No se pudo guardar el producto. Verifique que el SKU no esté repetido.", cancellationToken);
     }
 
     public async Task UpdateAsync(Product product, CancellationToken cancellationToken = default)
     {
-        _context.Products.Update(product);
-        await _context.SaveChangesAsync(cancellationToken);
+        // Si la entidad ya viene del contexto (GetByIdAsync), basta con guardar.
+        if (_context.Entry(product).State == EntityState.Detached)
+            _context.Products.Update(product);
+
+        await PersistenceErrors.SaveChangesAsync(_context, "No se pudo actualizar el producto. Verifique que el SKU no esté repetido.", cancellationToken);
     }
 }
