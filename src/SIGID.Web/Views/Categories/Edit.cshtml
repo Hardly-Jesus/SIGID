@@ -1,0 +1,11 @@
+@model CategoryViewModel
+@{
+    ViewData["Title"] = "Editar categoría";
+    ViewData["Subtitle"] = Model.ProductCount == 1 ? "1 producto asociado" : $"{Model.ProductCount} productos asociados";
+}
+
+@section PageActions {
+    <a class="btn btn-quiet" asp-action="Index"><svg class="icon"><use href="#i-back" /></svg> Categorías</a>
+}
+
+<partial name="_CategoryForm" model="Model" />

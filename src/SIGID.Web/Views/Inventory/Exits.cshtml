@@ -1,0 +1,11 @@
+@model MovementListViewModel
+@{
+    ViewData["Title"] = "Salidas de inventario";
+    ViewData["Subtitle"] = "Unidades retiradas, de la más reciente a la más antigua";
+}
+
+@section PageActions {
+    <a class="btn btn-primary" asp-action="CreateExit"><svg class="icon"><use href="#i-plus" /></svg> Registrar salida</a>
+}
+
+<partial name="_MovementList" model="Model" />

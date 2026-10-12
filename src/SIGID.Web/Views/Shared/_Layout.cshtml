@@ -1,70 +1,130 @@
 @{
-    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
-    string Active(string name) => string.Equals(controller, name, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    // Marca como activo el enlace del menú que corresponde a la página actual.
+    string Active(string ctrl, params string[] actions) =>
+        string.Equals(controller, ctrl, StringComparison.OrdinalIgnoreCase)
+        && (actions.Length == 0 || actions.Any(a => string.Equals(action, a, StringComparison.OrdinalIgnoreCase)))
+            ? "is-active" : "";
+
+    var success = TempData["SuccessMessage"] as string;
+    var error = TempData["ErrorMessage"] as string;
 }
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - SIGID</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] · SIGID</title>
+    <link rel="icon" href="~/favicon.ico" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-sigid">
-            <div class="container-fluid">
-                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">SIGID</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-                        aria-controls="mainNav" aria-expanded="false" aria-label="Mostrar navegación">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="mainNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link @Active("Home")" asp-controller="Home" asp-action="Index">Inicio</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @Active("Dashboard")" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @Active("Products")" asp-controller="Products" asp-action="Index">Productos</a>
-                        </li>
+    <partial name="_Icons" />
 
-                        @* Módulos de sprints posteriores: se habilitarán a medida que se implementen. *@
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Próximamente
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><span class="dropdown-item disabled">Categorías</span></li>
-                                <li><span class="dropdown-item disabled">Proveedores</span></li>
-                                <li><span class="dropdown-item disabled">Inventario</span></li>
-                                <li><span class="dropdown-item disabled">Movimientos</span></li>
-                                <li><span class="dropdown-item disabled">Ventas</span></li>
-                                <li><span class="dropdown-item disabled">Predicción</span></li>
-                                <li><span class="dropdown-item disabled">Alertas</span></li>
-                                <li><span class="dropdown-item disabled">Reportes</span></li>
-                            </ul>
-                        </li>
-                    </ul>
+    <div class="app">
+        <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" /><path d="M9 21.5h14M9 16h10M9 10.5h6" /></svg>
+                </span>
+                <span class="brand-text">
+                    <strong>SIGID</strong>
+                    <small>Inventarios y demanda</small>
+                </span>
+            </a>
+
+            <nav class="nav">
+                <div class="nav-group">
+                    <a class="nav-link @Active("Home")" asp-controller="Home" asp-action="Index">
+                        <svg class="icon"><use href="#i-home" /></svg> Inicio
+                    </a>
+                    <a class="nav-link @Active("Dashboard")" asp-controller="Dashboard" asp-action="Index">
+                        <svg class="icon"><use href="#i-dashboard" /></svg> Dashboard
+                    </a>
                 </div>
-            </div>
-        </nav>
-    </header>
 
-    <main class="container py-4">
-        @RenderBody()
-    </main>
+                <div class="nav-group">
+                    <p class="nav-title">Catálogo</p>
+                    <a class="nav-link @Active("Products")" asp-controller="Products" asp-action="Index">
+                        <svg class="icon"><use href="#i-box" /></svg> Productos
+                    </a>
+                    <a class="nav-link @Active("Categories")" asp-controller="Categories" asp-action="Index">
+                        <svg class="icon"><use href="#i-tag" /></svg> Categorías
+                    </a>
+                    <a class="nav-link @Active("Suppliers")" asp-controller="Suppliers" asp-action="Index">
+                        <svg class="icon"><use href="#i-truck" /></svg> Proveedores
+                    </a>
+                </div>
 
-    <footer class="border-top text-muted py-3">
-        <div class="container small">
-            &copy; @DateTime.Now.Year SIGID — Sistema Inteligente de Gestión de Inventarios y Demanda
+                <div class="nav-group">
+                    <p class="nav-title">Inventario</p>
+                    <a class="nav-link @Active("Inventory", "Entries", "CreateEntry")" asp-controller="Inventory" asp-action="Entries">
+                        <svg class="icon"><use href="#i-entry" /></svg> Entradas
+                    </a>
+                    <a class="nav-link @Active("Inventory", "Exits", "CreateExit")" asp-controller="Inventory" asp-action="Exits">
+                        <svg class="icon"><use href="#i-exit" /></svg> Salidas
+                    </a>
+                    <a class="nav-link @Active("Inventory", "History")" asp-controller="Inventory" asp-action="History">
+                        <svg class="icon"><use href="#i-history" /></svg> Historial
+                    </a>
+                </div>
+
+                @* Módulos de próximos sprints: se muestran como no disponibles, sin enlace. *@
+                <div class="nav-group">
+                    <p class="nav-title">Próximos sprints</p>
+                    <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-cart" /></svg> Ventas</span>
+                    <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-trend" /></svg> Predicción</span>
+                    <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-bell" /></svg> Alertas</span>
+                    <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-report" /></svg> Reportes</span>
+                </div>
+            </nav>
+
+        </aside>
+
+        <div class="sidebar-backdrop" data-sidebar-close></div>
+
+        <div class="app-main">
+            <header class="topbar">
+                <button type="button" class="icon-button menu-button" data-sidebar-open aria-controls="sidebar" aria-label="Abrir menú">
+                    <svg class="icon"><use href="#i-menu" /></svg>
+                </button>
+                <div class="topbar-titles">
+                    <h1 class="page-title">@ViewData["Title"]</h1>
+                    @if (ViewData["Subtitle"] is string subtitle)
+                    {
+                        <p class="page-subtitle">@subtitle</p>
+                    }
+                </div>
+                <div class="topbar-actions">
+                    @await RenderSectionAsync("PageActions", required: false)
+                </div>
+            </header>
+
+            <main class="content">
+                @if (!string.IsNullOrEmpty(success))
+                {
+                    <div class="notice notice-success" role="status" data-dismissible>
+                        <svg class="icon"><use href="#i-check" /></svg>
+                        <span>@success</span>
+                        <button type="button" class="notice-close" aria-label="Cerrar" data-dismiss><svg class="icon"><use href="#i-x" /></svg></button>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="notice notice-error" role="alert" data-dismissible>
+                        <svg class="icon"><use href="#i-alert" /></svg>
+                        <span>@error</span>
+                        <button type="button" class="notice-close" aria-label="Cerrar" data-dismiss><svg class="icon"><use href="#i-x" /></svg></button>
+                    </div>
+                }
+
+                @RenderBody()
+            </main>
         </div>
-    </footer>
+    </div>
 
-    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

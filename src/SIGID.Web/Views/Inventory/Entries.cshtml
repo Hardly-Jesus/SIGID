@@ -1,0 +1,11 @@
+@model MovementListViewModel
+@{
+    ViewData["Title"] = "Entradas de inventario";
+    ViewData["Subtitle"] = "Unidades recibidas, de la más reciente a la más antigua";
+}
+
+@section PageActions {
+    <a class="btn btn-primary" asp-action="CreateEntry"><svg class="icon"><use href="#i-plus" /></svg> Registrar entrada</a>
+}
+
+<partial name="_MovementList" model="Model" />

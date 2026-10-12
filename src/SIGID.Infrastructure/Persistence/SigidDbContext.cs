@@ -16,6 +16,8 @@ public class SigidDbContext : DbContext
 
     public DbSet<Supplier> Suppliers => Set<Supplier>();
 
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

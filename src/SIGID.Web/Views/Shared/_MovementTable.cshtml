@@ -1,0 +1,54 @@
+@model IReadOnlyList<InventoryMovementDto>
+@{
+    var showType = ViewData["ShowType"] as bool? ?? true;
+}
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>N.º</th>
+                <th>Fecha</th>
+                @if (showType)
+                {
+                    <th>Tipo</th>
+                }
+                <th>Producto</th>
+                <th class="text-end">Cantidad</th>
+                <th class="text-end col-optional">Existencia resultante</th>
+                <th class="col-optional">Observación</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in Model)
+            {
+                var isEntry = m.MovementType == MovementType.Entry;
+                <tr>
+                    <td class="muted num">#@m.Id</td>
+                    <td class="nowrap">
+                        <span class="cell-main num">@m.Date.ToString("dd/MM/yyyy")</span>
+                        <span class="cell-sub num">@m.Date.ToString("HH:mm")</span>
+                    </td>
+                    @if (showType)
+                    {
+                        <td>
+                            <span class="movement-type @(isEntry ? "is-entry" : "is-exit")">
+                                <span class="badge-icon"><svg class="icon"><use href="@(isEntry ? "#i-entry" : "#i-exit")" /></svg></span>
+                                @(isEntry ? "Entrada" : "Salida")
+                            </span>
+                        </td>
+                    }
+                    <td>
+                        <span class="cell-main">@m.ProductName</span>
+                        <span class="cell-sub sku">@m.ProductSku</span>
+                    </td>
+                    <td class="text-end">
+                        <span class="qty @(isEntry ? "qty-in" : "qty-out")">@(isEntry ? "+" : "−")@m.Quantity</span>
+                        <span class="muted">@m.UnitOfMeasure</span>
+                    </td>
+                    <td class="text-end num col-optional secondary">@m.StockAfter @m.UnitOfMeasure</td>
+                    <td class="col-optional secondary">@(string.IsNullOrEmpty(m.Description) ? "—" : m.Description)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,25 @@
+@model MovementListViewModel
+
+<section class="panel">
+    @if (Model.Movements.Count == 0)
+    {
+        <div class="empty">
+            <span class="empty-icon"><svg class="icon"><use href="@(Model.IsEntry ? "#i-entry" : "#i-exit")" /></svg></span>
+            <h3>@(Model.IsEntry ? "Aún no hay entradas registradas" : "Aún no hay salidas registradas")</h3>
+            <p>@(Model.IsEntry
+                ? "Cada entrada suma unidades a las existencias de un producto y queda registrada en el historial."
+                : "Cada salida descuenta unidades disponibles. No se permite retirar más de lo que hay en existencia.")</p>
+            <a class="btn btn-primary" asp-action="@(Model.IsEntry ? "CreateEntry" : "CreateExit")">
+                <svg class="icon"><use href="#i-plus" /></svg> @(Model.IsEntry ? "Registrar entrada" : "Registrar salida")
+            </a>
+        </div>
+    }
+    else
+    {
+        <partial name="_MovementTable" model="Model.Movements" view-data='new ViewDataDictionary(ViewData) { ["ShowType"] = false }' />
+        <div class="result-bar">
+            <span><strong>@Model.Movements.Count</strong> @(Model.Movements.Count == 1 ? "movimiento" : "movimientos")</span>
+            <a asp-action="History" asp-route-type="@Model.MovementType">Ver en el historial con filtros</a>
+        </div>
+    }
+</section>

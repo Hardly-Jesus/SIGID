@@ -13,6 +13,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             // Restricciones de stock
             table.HasCheckConstraint("CK_Products_MinimumStock", "[MinimumStock] >= 0");
             table.HasCheckConstraint("CK_Products_MaximumStock", "[MaximumStock] >= [MinimumStock]");
+
+            // Última protección: las existencias nunca pueden quedar negativas.
+            table.HasCheckConstraint("CK_Products_CurrentStock", "[CurrentStock] >= 0");
         });
 
         builder.HasKey(p => p.Id);
@@ -39,6 +42,10 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .IsRequired();
 
         builder.Property(p => p.MaximumStock)
+            .IsRequired();
+
+        // Existencias actuales: los productos nuevos empiezan en 0.
+        builder.Property(p => p.CurrentStock)
             .IsRequired();
 
         builder.Property(p => p.IsActive)

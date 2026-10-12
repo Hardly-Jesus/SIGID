@@ -1,77 +1,76 @@
 @model IReadOnlyList<ProductViewModel>
 @{
     ViewData["Title"] = "Productos";
-    var warning = ViewData["DatabaseWarning"] as string;
-    var success = TempData["SuccessMessage"] as string;
+    ViewData["Subtitle"] = Model.Count == 0
+        ? "Catálogo de productos del inventario"
+        : $"{Model.Count} {(Model.Count == 1 ? "producto registrado" : "productos registrados")}";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Gestión de productos</h1>
-    <a class="btn btn-primary" asp-action="Create">Nuevo producto</a>
-</div>
-
-@if (!string.IsNullOrEmpty(success))
-{
-    <div class="alert alert-success">@success</div>
+@section PageActions {
+    <a class="btn btn-primary" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg> Nuevo producto</a>
 }
 
-@if (!string.IsNullOrEmpty(warning))
-{
-    <div class="alert alert-warning">@warning</div>
-}
-
-@if (Model.Count == 0)
-{
-    <div class="card placeholder-card">
-        <div class="card-body text-center text-muted py-5">
-            Aquí se mostrará el listado de productos.
+<section class="panel">
+    @if (Model.Count == 0)
+    {
+        <div class="empty">
+            <span class="empty-icon"><svg class="icon"><use href="#i-box" /></svg></span>
+            <h3>Aún no hay productos</h3>
+            <p>Registra el primer producto indicando su SKU, categoría y proveedor. Sus existencias empiezan en cero y aumentan con las entradas de inventario.</p>
+            <a class="btn btn-primary" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg> Registrar producto</a>
         </div>
-    </div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>SKU</th>
-                    <th>Nombre</th>
-                    <th>Categoría</th>
-                    <th>Proveedor</th>
-                    <th>Unidad</th>
-                    <th class="text-end">Stock mín.</th>
-                    <th class="text-end">Stock máx.</th>
-                    <th>Estado</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in Model)
-                {
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
                     <tr>
-                        <td>@p.SKU</td>
-                        <td>@p.Name</td>
-                        <td>@p.CategoryName</td>
-                        <td>@p.SupplierName</td>
-                        <td>@p.UnitOfMeasure</td>
-                        <td class="text-end">@p.MinimumStock</td>
-                        <td class="text-end">@p.MaximumStock</td>
-                        <td>
-                            @if (p.IsActive)
-                            {
-                                <span class="badge bg-success">Activo</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Inactivo</span>
-                            }
-                        </td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
-                        </td>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th class="col-optional">Proveedor</th>
+                        <th>Existencias</th>
+                        <th class="text-end col-optional">Mín. / Máx.</th>
+                        <th>Estado</th>
+                        <th class="text-end"><span class="visually-hidden">Acciones</span></th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="cell-main">@p.Name</span>
+                                <span class="cell-sub sku">@p.SKU</span>
+                            </td>
+                            <td class="secondary">@p.CategoryName</td>
+                            <td class="secondary col-optional">@p.SupplierName</td>
+                            <td><partial name="_StockMeter" model="p" /></td>
+                            <td class="text-end num secondary col-optional">@p.MinimumStock / @p.MaximumStock</td>
+                            <td><partial name="_StockChip" model="p" /></td>
+                            <td>
+                                <div class="actions">
+                                    @if (p.IsActive)
+                                    {
+                                        <a class="icon-button" asp-controller="Inventory" asp-action="CreateEntry" asp-route-productId="@p.Id" title="Registrar entrada" aria-label="Registrar entrada de @p.Name">
+                                            <svg class="icon"><use href="#i-entry" /></svg>
+                                        </a>
+                                        @if (p.CurrentStock > 0)
+                                        {
+                                            <a class="icon-button" asp-controller="Inventory" asp-action="CreateExit" asp-route-productId="@p.Id" title="Registrar salida" aria-label="Registrar salida de @p.Name">
+                                                <svg class="icon"><use href="#i-exit" /></svg>
+                                            </a>
+                                        }
+                                    }
+                                    <a class="icon-button" asp-action="Edit" asp-route-id="@p.Id" title="Editar" aria-label="Editar @p.Name">
+                                        <svg class="icon"><use href="#i-edit" /></svg>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

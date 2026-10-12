@@ -4,9 +4,14 @@ namespace SIGID.Application.Interfaces.Repositories;
 
 public interface IProductRepository
 {
+    /// <summary>
+    /// Devuelve todos los productos con su categoría y proveedor.
+    /// </summary>
     Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default);
 
     Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<Product?> GetBySkuAsync(string sku, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Indica si ya existe un producto con el SKU indicado (opcionalmente excluyendo un Id, útil en edición).

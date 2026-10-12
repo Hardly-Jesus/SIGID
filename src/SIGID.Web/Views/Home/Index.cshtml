@@ -2,11 +2,29 @@
     ViewData["Title"] = "Inicio";
 }
 
-<div class="p-5 mb-4 bg-light rounded-3 border">
-    <h1 class="display-5 fw-bold">SIGID</h1>
-    <p class="lead">Sistema Inteligente de Gestión de Inventarios y Demanda</p>
-    <hr />
-    <p>Seleccione un módulo para comenzar.</p>
-    <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">Ir al Dashboard</a>
-    <a class="btn btn-outline-primary" asp-controller="Products" asp-action="Index">Gestión de productos</a>
-</div>
+<section class="panel welcome">
+    <div>
+        <h2>Sistema Inteligente de Gestión de Inventarios y Demanda</h2>
+        <p>Organiza el catálogo, registra cada entrada y salida de mercadería y consulta en cualquier momento las existencias reales de tus productos.</p>
+        <div class="welcome-actions">
+            <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index"><svg class="icon"><use href="#i-dashboard" /></svg> Ir al dashboard</a>
+            <a class="btn btn-secondary" asp-controller="Products" asp-action="Index">Ver productos</a>
+        </div>
+    </div>
+
+    @* Orden recomendado para empezar a usar el sistema: sí es una secuencia. *@
+    <ol class="flow" aria-label="Primeros pasos">
+        <li>
+            <span class="step">1</span>
+            <div><strong><a asp-controller="Categories" asp-action="Index">Categorías y proveedores</a></strong><span>Crea la clasificación y quién abastece cada producto.</span></div>
+        </li>
+        <li>
+            <span class="step">2</span>
+            <div><strong><a asp-controller="Products" asp-action="Index">Productos</a></strong><span>Registra el catálogo con su SKU y sus umbrales de stock.</span></div>
+        </li>
+        <li>
+            <span class="step">3</span>
+            <div><strong><a asp-controller="Inventory" asp-action="Entries">Entradas y salidas</a></strong><span>Cada movimiento actualiza las existencias y queda en el historial.</span></div>
+        </li>
+    </ol>
+</section>

@@ -1,0 +1,79 @@
+@model IReadOnlyList<SupplierViewModel>
+@{
+    ViewData["Title"] = "Proveedores";
+    ViewData["Subtitle"] = "Empresas que abastecen los productos";
+}
+
+@section PageActions {
+    <a class="btn btn-primary" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg> Nuevo proveedor</a>
+}
+
+<section class="panel">
+    @if (Model.Count == 0)
+    {
+        <div class="empty">
+            <span class="empty-icon"><svg class="icon"><use href="#i-truck" /></svg></span>
+            <h3>Aún no hay proveedores</h3>
+            <p>Registra a quienes abastecen tu inventario. Cada producto debe tener un proveedor asignado.</p>
+            <a class="btn btn-primary" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg> Registrar proveedor</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>Contacto</th>
+                        <th class="col-optional">Dirección</th>
+                        <th class="text-end">Productos</th>
+                        <th>Estado</th>
+                        <th class="text-end"><span class="visually-hidden">Acciones</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="cell-main">@s.Name</span>
+                                <span class="cell-sub">@(string.IsNullOrEmpty(s.Identification) ? "Sin identificación" : "RNC " + s.Identification)</span>
+                            </td>
+                            <td>
+                                @if (string.IsNullOrEmpty(s.Email) && string.IsNullOrEmpty(s.Phone))
+                                {
+                                    <span class="muted">—</span>
+                                }
+                                else
+                                {
+                                    @if (!string.IsNullOrEmpty(s.Email))
+                                    {
+                                        <a href="mailto:@s.Email">@s.Email</a>
+                                    }
+                                    @if (!string.IsNullOrEmpty(s.Phone))
+                                    {
+                                        <span class="cell-sub num">@s.Phone</span>
+                                    }
+                                }
+                            </td>
+                            <td class="secondary col-optional">@(string.IsNullOrEmpty(s.Address) ? "—" : s.Address)</td>
+                            <td class="text-end"><span class="count-pill">@s.ProductCount</span></td>
+                            <td><partial name="_ActiveChip" model="s.IsActive" /></td>
+                            <td>
+                                <div class="actions">
+                                    <a class="icon-button" asp-action="Edit" asp-route-id="@s.Id" title="Editar" aria-label="Editar @s.Name">
+                                        <svg class="icon"><use href="#i-edit" /></svg>
+                                    </a>
+                                    <a class="icon-button is-danger" asp-action="Delete" asp-route-id="@s.Id" title="Eliminar" aria-label="Eliminar @s.Name">
+                                        <svg class="icon"><use href="#i-trash" /></svg>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

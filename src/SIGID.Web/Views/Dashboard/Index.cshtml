@@ -1,50 +1,142 @@
+@model DashboardSummaryDto
 @{
     ViewData["Title"] = "Dashboard";
-    var indicators = new[]
-    {
-        "Total de productos",
-        "Productos con stock bajo",
-        "Ventas del mes",
-        "Alertas activas"
-    };
+    ViewData["Subtitle"] = "Estado actual del catálogo y del inventario";
+
+    var active = Model.ActiveProducts;
+    var ok = active - Model.LowStockProducts - Model.OutOfStockProducts;
+    double Pct(int value) => active == 0 ? 0 : value * 100.0 / active;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
 }
 
-<div class="mb-4">
-    <h1 class="h3 mb-0">SIGID</h1>
-    <p class="text-muted mb-1">Sistema Inteligente de Gestión de Inventarios y Demanda</p>
-    <h2 class="h4">Dashboard</h2>
+@section PageActions {
+    <a class="btn btn-secondary" asp-controller="Inventory" asp-action="CreateExit"><svg class="icon"><use href="#i-exit" /></svg> Salida</a>
+    <a class="btn btn-primary" asp-controller="Inventory" asp-action="CreateEntry"><svg class="icon"><use href="#i-entry" /></svg> Entrada</a>
+}
+
+<div class="overview">
+    <section class="panel health" aria-labelledby="health-title">
+        <div class="health-head">
+            <div>
+                <h2 id="health-title" class="panel-title">Existencias de productos activos</h2>
+                <p class="health-caption">@Model.TotalUnitsInStock.ToString("N0") unidades disponibles en total</p>
+            </div>
+            <div class="text-end">
+                <div class="health-total">@active</div>
+                <p class="health-caption">@(active == 1 ? "producto activo" : "productos activos")</p>
+            </div>
+        </div>
+
+        @if (active == 0)
+        {
+            <div class="health-bar" aria-hidden="true"></div>
+            <p class="health-caption" style="margin-top:14px">Cuando registres productos y entradas verás aquí cuántos tienen existencias suficientes.</p>
+        }
+        else
+        {
+            <div class="health-bar" role="img" aria-label="@ok con existencias normales, @Model.LowStockProducts con stock bajo y @Model.OutOfStockProducts sin existencias">
+                @if (ok > 0) { <span class="seg-ok" style="width:@Pct(ok).ToString("0.##", inv)%"></span> }
+                @if (Model.LowStockProducts > 0) { <span class="seg-low" style="width:@Pct(Model.LowStockProducts).ToString("0.##", inv)%"></span> }
+                @if (Model.OutOfStockProducts > 0) { <span class="seg-out" style="width:@Pct(Model.OutOfStockProducts).ToString("0.##", inv)%"></span> }
+            </div>
+        }
+
+        <div class="health-legend">
+            <div class="legend-item" style="--dot: var(--color-success)">
+                <span class="legend-label">Disponibles</span>
+                <strong>@ok</strong>
+            </div>
+            <div class="legend-item" style="--dot: var(--color-warning)">
+                <span class="legend-label">Stock bajo</span>
+                <strong>@Model.LowStockProducts</strong>
+            </div>
+            <div class="legend-item" style="--dot: var(--color-danger)">
+                <span class="legend-label">Sin existencias</span>
+                <strong>@Model.OutOfStockProducts</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel catalog-links" aria-label="Catálogo">
+        <a class="catalog-link" asp-controller="Products" asp-action="Index">
+            <span class="link-icon"><svg class="icon"><use href="#i-box" /></svg></span>
+            <span class="link-text">Productos<span class="cell-sub">@(Model.TotalProducts - Model.ActiveProducts) inactivos</span></span>
+            <span class="link-value">@Model.TotalProducts</span>
+            <svg class="icon chevron"><use href="#i-chevron" /></svg>
+        </a>
+        <a class="catalog-link" asp-controller="Categories" asp-action="Index">
+            <span class="link-icon"><svg class="icon"><use href="#i-tag" /></svg></span>
+            <span class="link-text">Categorías</span>
+            <span class="link-value">@Model.TotalCategories</span>
+            <svg class="icon chevron"><use href="#i-chevron" /></svg>
+        </a>
+        <a class="catalog-link" asp-controller="Suppliers" asp-action="Index">
+            <span class="link-icon"><svg class="icon"><use href="#i-truck" /></svg></span>
+            <span class="link-text">Proveedores</span>
+            <span class="link-value">@Model.TotalSuppliers</span>
+            <svg class="icon chevron"><use href="#i-chevron" /></svg>
+        </a>
+    </section>
 </div>
 
-<div class="row g-3 mb-4">
-    @foreach (var indicator in indicators)
-    {
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card h-100 placeholder-card">
-                <div class="card-body">
-                    <h3 class="h6 card-title text-muted">@indicator</h3>
-                    <p class="display-6 mb-0">—</p>
-                    <small class="text-muted">Indicador pendiente</small>
-                </div>
-            </div>
+<div class="dash-grid">
+    <section class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Requieren reposición</h2>
+            <a class="panel-note" asp-controller="Products" asp-action="Index">Ver productos</a>
         </div>
-    }
-</div>
+        @if (Model.ProductsNeedingAttention.Count == 0)
+        {
+            <div class="panel-body"><p class="secondary">@(active == 0 ? "Aún no hay productos activos." : "Ningún producto activo está por debajo de su stock mínimo.")</p></div>
+        }
+        else
+        {
+            <ul class="list">
+                @foreach (var p in Model.ProductsNeedingAttention)
+                {
+                    var vm = ProductViewModel.FromDto(p);
+                    <li>
+                        <div class="list-main">
+                            <span class="cell-main">@p.Name</span>
+                            <span class="cell-sub">Mínimo: @p.MinimumStock @p.UnitOfMeasure</span>
+                        </div>
+                        <partial name="_StockMeter" model="vm" />
+                        <a class="icon-button" asp-controller="Inventory" asp-action="CreateEntry" asp-route-productId="@p.Id" title="Registrar entrada" aria-label="Registrar entrada de @p.Name">
+                            <svg class="icon"><use href="#i-entry" /></svg>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
 
-<div class="row g-3">
-    <div class="col-12 col-lg-8">
-        <div class="card h-100 placeholder-card">
-            <div class="card-body">
-                <h3 class="h6 card-title">Tendencia de demanda</h3>
-                <div class="placeholder-area">Espacio reservado para el gráfico de demanda</div>
-            </div>
+    <section class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Movimientos recientes</h2>
+            <a class="panel-note" asp-controller="Inventory" asp-action="History">Ver historial</a>
         </div>
-    </div>
-    <div class="col-12 col-lg-4">
-        <div class="card h-100 placeholder-card">
-            <div class="card-body">
-                <h3 class="h6 card-title">Alertas recientes</h3>
-                <div class="placeholder-area">Espacio reservado para alertas</div>
-            </div>
-        </div>
-    </div>
+        @if (Model.RecentMovements.Count == 0)
+        {
+            <div class="panel-body"><p class="secondary">Todavía no se han registrado entradas ni salidas.</p></div>
+        }
+        else
+        {
+            <ul class="list">
+                @foreach (var m in Model.RecentMovements)
+                {
+                    var isEntry = m.MovementType == MovementType.Entry;
+                    <li>
+                        <span class="movement-type @(isEntry ? "is-entry" : "is-exit")">
+                            <span class="badge-icon" title="@(isEntry ? "Entrada" : "Salida")"><svg class="icon"><use href="@(isEntry ? "#i-entry" : "#i-exit")" /></svg></span>
+                        </span>
+                        <div class="list-main">
+                            <span class="cell-main">@m.ProductName</span>
+                            <span class="cell-sub num">@m.Date.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <span class="qty @(isEntry ? "qty-in" : "qty-out")">@(isEntry ? "+" : "−")@m.Quantity <span class="muted">@m.UnitOfMeasure</span></span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
 </div>

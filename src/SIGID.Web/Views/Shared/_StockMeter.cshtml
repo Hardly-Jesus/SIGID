@@ -1,0 +1,26 @@
+@model ProductViewModel
+@{
+    // Escala del medidor: el stock máximo (o el doble del mínimo si no hay máximo).
+    var scale = Math.Max(Math.Max(Model.MaximumStock, Model.MinimumStock * 2), Math.Max(Model.CurrentStock, 1));
+    var fill = Math.Min(100.0, Model.CurrentStock * 100.0 / scale);
+    var minMark = Model.MinimumStock * 100.0 / scale;
+    var css = Model.StockStatus switch
+    {
+        StockStatus.OutOfStock => "is-out",
+        StockStatus.Low => "is-low",
+        _ => ""
+    };
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+<div class="stock @css" title="Mínimo: @Model.MinimumStock · Máximo: @Model.MaximumStock">
+    <div class="stock-figure">
+        <strong>@Model.CurrentStock</strong><span>@Model.UnitOfMeasure</span>
+    </div>
+    <div class="meter" aria-hidden="true">
+        <span class="meter-fill" style="width:@fill.ToString("0.#", inv)%"></span>
+        @if (Model.MinimumStock > 0)
+        {
+            <span class="meter-min" style="left:@minMark.ToString("0.#", inv)%"></span>
+        }
+    </div>
+</div>
