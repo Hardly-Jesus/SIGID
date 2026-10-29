@@ -52,3 +52,49 @@ document.querySelectorAll("[data-stock-form]").forEach(function (form) {
     if (quantity) quantity.addEventListener("input", update);
     update();
 });
+
+// Formularios marcados con data-submit-once: evita que un doble clic envíe dos veces.
+// No se deshabilitan los botones para que el servidor reciba cuál se pulsó.
+// (El servidor también evita ventas duplicadas mediante el identificador del formulario.)
+document.querySelectorAll("form[data-submit-once]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+        if (form.dataset.submitting === "true") {
+            event.preventDefault();
+            return;
+        }
+        form.dataset.submitting = "true";
+    });
+});
+
+// Al volver con el botón «Atrás» el formulario debe poder enviarse otra vez.
+window.addEventListener("pageshow", function () {
+    document.querySelectorAll("form[data-submit-once]").forEach(function (form) {
+        delete form.dataset.submitting;
+    });
+});
+
+// Registrar venta: al cambiar la cantidad de un producto ya agregado, avisa en el momento
+// si supera las existencias. Es solo una ayuda: el servidor vuelve a validar todo.
+document.querySelectorAll("[data-sale-qty]").forEach(function (input) {
+    var message = input.parentElement.querySelector("[data-valmsg-for]");
+    var stock = parseInt(input.getAttribute("data-stock"), 10);
+    var unit = input.getAttribute("data-unit") || "";
+    if (!message || isNaN(stock)) return;
+
+    input.addEventListener("input", function () {
+        var value = input.value.trim();
+        var qty = Number(value);
+        var text = "";
+
+        if (value === "" || !Number.isInteger(qty) || qty <= 0) {
+            text = "Escribe una cantidad mayor que cero.";
+        } else if (qty > stock) {
+            text = stock > 0 ? "Solo hay " + stock + " " + unit + " disponibles." : "No hay existencias disponibles.";
+        }
+
+        message.textContent = text;
+        message.classList.toggle("field-validation-error", text !== "");
+        message.classList.toggle("field-validation-valid", text === "");
+        input.classList.toggle("input-validation-error", text !== "");
+    });
+});

@@ -1,4 +1,5 @@
 using SIGID.Application.DTOs;
+using SIGID.Application.DTOs.Sales;
 using SIGID.Application.Exceptions;
 using SIGID.Application.Interfaces.Repositories;
 using SIGID.Application.Interfaces.Services;
@@ -9,6 +10,7 @@ namespace SIGID.Application.Services.Inventory;
 
 /// <summary>
 /// Lógica de negocio de entradas, salidas e historial de inventario (HU-08, HU-09 y HU-10).
+/// También procesa las salidas generadas por las ventas (HU-15) con las mismas reglas.
 /// </summary>
 public class InventoryService : IInventoryService
 {
@@ -25,10 +27,36 @@ public class InventoryService : IInventoryService
     }
 
     public Task<InventoryMovementDto> RegisterEntryAsync(RegisterMovementDto entry, CancellationToken cancellationToken = default)
-        => RegisterAsync(entry, MovementType.Entry, cancellationToken);
+        => RegisterAsync(entry, MovementType.Entry, saleId: null, cancellationToken);
 
     public Task<InventoryMovementDto> RegisterExitAsync(RegisterMovementDto exit, CancellationToken cancellationToken = default)
-        => RegisterAsync(exit, MovementType.Exit, cancellationToken);
+        => RegisterAsync(exit, MovementType.Exit, saleId: null, cancellationToken);
+
+    public async Task<IReadOnlyList<InventoryMovementDto>> RegisterSaleExitsAsync(
+        int saleId, DateTime date, IReadOnlyList<RegisterSaleDetailDto> items, CancellationToken cancellationToken = default)
+    {
+        if (saleId <= 0)
+            throw new BusinessException("La venta debe guardarse antes de registrar sus salidas de inventario.");
+
+        var movements = new List<InventoryMovementDto>();
+
+        // Se procesan en orden de producto para que dos ventas simultáneas bloqueen las filas
+        // en el mismo orden y no se queden esperando una a la otra.
+        foreach (var item in items.OrderBy(i => i.ProductId))
+        {
+            var exit = new RegisterMovementDto
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                Date = date,
+                Description = $"Venta #{saleId}"
+            };
+
+            movements.Add(await RegisterAsync(exit, MovementType.Exit, saleId, cancellationToken));
+        }
+
+        return movements;
+    }
 
     public Task<int?> GetCurrentStockAsync(int productId, CancellationToken cancellationToken = default)
         => _movementRepository.GetCurrentStockAsync(productId, cancellationToken);
@@ -68,7 +96,7 @@ public class InventoryService : IInventoryService
     // ------------------------------------------------------------------
     // Registro de movimientos
     // ------------------------------------------------------------------
-    private async Task<InventoryMovementDto> RegisterAsync(RegisterMovementDto dto, MovementType type, CancellationToken cancellationToken)
+    private async Task<InventoryMovementDto> RegisterAsync(RegisterMovementDto dto, MovementType type, int? saleId, CancellationToken cancellationToken)
     {
         if (dto.ProductId <= 0)
             throw new BusinessException("Seleccione un producto.", nameof(RegisterMovementDto.ProductId));
@@ -101,7 +129,8 @@ public class InventoryService : IInventoryService
             MovementType = type,
             Quantity = dto.Quantity,
             Date = dto.Date,
-            Description = description
+            Description = description,
+            SaleId = saleId
         };
 
         // El repositorio actualiza las existencias y guarda el movimiento en una sola transacción.
@@ -144,6 +173,7 @@ public class InventoryService : IInventoryService
         Quantity = movement.Quantity,
         Date = movement.Date,
         Description = movement.Description,
-        StockAfter = movement.StockAfter
+        StockAfter = movement.StockAfter,
+        SaleId = movement.SaleId
     };
 }

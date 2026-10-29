@@ -210,6 +210,11 @@ public class FakeInventoryMovementRepository : IInventoryMovementRepository
     /// </summary>
     public bool SimulateConcurrentExit { get; set; }
 
+    /// <summary>
+    /// Se ejecuta justo antes de descontar una salida (para simular otra operación simultánea).
+    /// </summary>
+    public Action<Product>? BeforeExit { get; set; }
+
     public Task<bool> RegisterAsync(InventoryMovement movement, CancellationToken cancellationToken = default)
     {
         // Mismo comportamiento que el repositorio real: stock y movimiento juntos, todo o nada.
@@ -223,6 +228,8 @@ public class FakeInventoryMovementRepository : IInventoryMovementRepository
             {
                 if (SimulateConcurrentExit)
                     product.CurrentStock = 0;
+
+                BeforeExit?.Invoke(product);
 
                 if (product.CurrentStock < movement.Quantity)
                     return Task.FromResult(false);

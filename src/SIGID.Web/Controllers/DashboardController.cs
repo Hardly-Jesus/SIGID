@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SIGID.Application.Interfaces.Services;
 
@@ -6,6 +7,7 @@ namespace SIGID.Web.Controllers;
 /// <summary>
 /// Dashboard con indicadores calculados a partir de los datos reales.
 /// </summary>
+[Authorize]
 public class DashboardController : Controller
 {
     private readonly IDashboardService _dashboardService;

@@ -40,8 +40,16 @@ public class InventoryMovementConfiguration : IEntityTypeConfiguration<Inventory
             .HasForeignKey(m => m.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Las salidas generadas por una venta quedan vinculadas a ella (opcional).
+        builder.HasOne(m => m.Sale)
+            .WithMany()
+            .HasForeignKey(m => m.SaleId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Índices para los filtros del historial.
         builder.HasIndex(m => new { m.ProductId, m.Date });
         builder.HasIndex(m => m.Date);
+        builder.HasIndex(m => m.SaleId);
     }
 }

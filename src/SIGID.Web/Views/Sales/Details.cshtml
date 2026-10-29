@@ -1,0 +1,72 @@
+@using SIGID.Web.Extensions
+@model SIGID.Application.DTOs.Sales.SaleHistoryDetailDto
+@{
+    ViewData["Title"] = $"Venta #{Model.Id}";
+    ViewData["Subtitle"] = $"Registrada el {Model.Date:dd/MM/yyyy} a las {Model.Date:HH:mm}";
+    var saleTitle = TempData["SaleTitle"] as string;
+    var saleMessage = TempData["SaleMessage"] as string;
+    var totals = QuantityFormat.TotalsByUnit(Model.Details.Select(d => (d.Quantity, d.UnitOfMeasure)));
+}
+
+@section PageActions {
+    <a class="btn btn-quiet" asp-action="Index"><svg class="icon"><use href="#i-back" /></svg> Historial de ventas</a>
+    <a class="btn btn-primary" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg> Registrar venta</a>
+}
+
+@if (!string.IsNullOrEmpty(saleMessage))
+{
+    <div class="notice notice-success" role="status" data-dismissible>
+        <svg class="icon"><use href="#i-check" /></svg>
+        <span><strong>@saleTitle</strong><span class="sale-alert-line">@saleMessage</span></span>
+        <button type="button" class="notice-close" aria-label="Cerrar" data-dismiss><svg class="icon"><use href="#i-x" /></svg></button>
+    </div>
+}
+
+<section class="panel">
+    <div class="panel-header">
+        <h2 class="panel-title">Resumen</h2>
+    </div>
+    <div class="panel-body">
+        <dl class="detail-list" style="margin-top:0">
+            <dt>N.º de venta</dt>
+            <dd class="num">#@Model.Id</dd>
+            <dt>Fecha y hora</dt>
+            <dd class="num">@Model.Date.ToString("dd/MM/yyyy HH:mm")</dd>
+            <dt>Productos</dt>
+            <dd class="num">@Model.Details.Count</dd>
+            <dt>Total vendido</dt>
+            <dd class="num">@totals</dd>
+        </dl>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2 class="panel-title">Productos vendidos</h2>
+    </div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th class="text-end">Cantidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model.Details)
+                {
+                    <tr>
+                        <td><span class="cell-main">@d.ProductName</span></td>
+                        <td class="sku">@d.SKU</td>
+                        <td class="text-end"><span class="qty">@d.Quantity</span> <span class="muted">@d.UnitOfMeasure</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="result-bar">
+        <span>Total</span>
+        <span><strong class="num">@totals</strong></span>
+    </div>
+</section>

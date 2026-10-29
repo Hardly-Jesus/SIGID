@@ -30,4 +30,11 @@ public class InventoryMovement
     /// Existencia del producto después de aplicar el movimiento.
     /// </summary>
     public int StockAfter { get; set; }
+
+    /// <summary>
+    /// Venta que generó el movimiento. Es nulo en las entradas y salidas manuales.
+    /// </summary>
+    public int? SaleId { get; set; }
+
+    public Sale? Sale { get; set; }
 }

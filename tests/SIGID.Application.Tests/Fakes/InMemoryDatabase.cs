@@ -9,6 +9,12 @@ public class InMemoryDatabase
 {
     public object Sync { get; } = new();
 
+    /// <summary>
+    /// Las transacciones simuladas se ejecutan de a una, para que el rollback de una
+    /// no deshaga lo que confirmó otra (en SQL Server cada transacción está aislada).
+    /// </summary>
+    public SemaphoreSlim TransactionLock { get; } = new(1, 1);
+
     public List<Category> Categories { get; } = new();
 
     public List<Supplier> Suppliers { get; } = new();
@@ -16,6 +22,10 @@ public class InMemoryDatabase
     public List<Product> Products { get; } = new();
 
     public List<InventoryMovement> Movements { get; } = new();
+
+    public List<Administrator> Administrators { get; } = new();
+
+    public List<Sale> Sales { get; } = new();
 
     private int _nextId = 1;
 

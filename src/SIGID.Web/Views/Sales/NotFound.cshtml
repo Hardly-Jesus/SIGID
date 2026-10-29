@@ -1,0 +1,13 @@
+@model int
+@{
+    ViewData["Title"] = "Venta no encontrada";
+}
+
+<section class="panel">
+    <div class="empty">
+        <span class="empty-icon"><svg class="icon"><use href="#i-alert" /></svg></span>
+        <h3>La venta #@Model no existe</h3>
+        <p>Es posible que el número sea incorrecto. Revisa el historial para encontrar la venta que buscas.</p>
+        <a class="btn btn-primary" asp-action="Index"><svg class="icon"><use href="#i-back" /></svg> Volver al historial</a>
+    </div>
+</section>

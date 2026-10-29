@@ -26,4 +26,9 @@ public class InventoryMovementDto
     public string? Description { get; set; }
 
     public int StockAfter { get; set; }
+
+    /// <summary>
+    /// Venta que originó el movimiento, si fue generado por una venta.
+    /// </summary>
+    public int? SaleId { get; set; }
 }

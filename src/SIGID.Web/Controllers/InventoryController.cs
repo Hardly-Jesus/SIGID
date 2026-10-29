@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SIGID.Application.Exceptions;
 using SIGID.Application.Interfaces.Services;
@@ -11,6 +12,7 @@ namespace SIGID.Web.Controllers;
 /// Entradas (HU-08), salidas (HU-09) e historial de movimientos (HU-10).
 /// Las reglas de existencias se validan en InventoryService.
 /// </summary>
+[Authorize]
 public class InventoryController : Controller
 {
     private readonly IInventoryService _inventoryService;

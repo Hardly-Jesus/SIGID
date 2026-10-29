@@ -18,6 +18,12 @@ public class SigidDbContext : DbContext
 
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
 
+    public DbSet<Administrator> Administrators => Set<Administrator>();
+
+    public DbSet<Sale> Sales => Set<Sale>();
+
+    public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

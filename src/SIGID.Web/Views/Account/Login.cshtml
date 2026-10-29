@@ -1,0 +1,53 @@
+@model LoginViewModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Iniciar sesión";
+    var success = TempData["SuccessMessage"] as string;
+}
+
+<div class="auth-card">
+    <div class="brand auth-brand">
+        <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" /><path d="M9 21.5h14M9 16h10M9 10.5h6" /></svg>
+        </span>
+        <span class="brand-text">
+            <strong>SIGID</strong>
+            <small>Inventarios y demanda</small>
+        </span>
+    </div>
+
+    <section class="panel">
+        <form asp-action="Login" method="post" novalidate class="auth-form" data-submit-once>
+            <div class="auth-heading">
+                <h1>Iniciar sesión</h1>
+                <p>Acceso para el administrador del sistema.</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(success))
+            {
+                <div class="notice notice-success" role="status">
+                    <svg class="icon"><use href="#i-check" /></svg><span>@success</span>
+                </div>
+            }
+
+            <div asp-validation-summary="ModelOnly" class="notice notice-error" role="alert"></div>
+
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div class="field">
+                <label asp-for="UserNameOrEmail" class="field-label required"></label>
+                <input asp-for="UserNameOrEmail" class="input" autocomplete="username" autofocus maxlength="150" />
+                <span asp-validation-for="UserNameOrEmail"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Password" class="field-label required"></label>
+                @* El valor nunca se vuelve a mostrar: value vacío siempre. *@
+                <input asp-for="Password" class="input" type="password" autocomplete="current-password" value="" />
+                <span asp-validation-for="Password"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary auth-submit">Iniciar sesión</button>
+        </form>
+    </section>
+</div>
