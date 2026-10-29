@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SIGID.Application.Exceptions;
 using SIGID.Application.Interfaces.Services;
@@ -9,6 +10,7 @@ namespace SIGID.Web.Controllers;
 /// <summary>
 /// Gestión de proveedores, HU-07 (crear, consultar, editar y eliminar).
 /// </summary>
+[Authorize]
 public class SuppliersController : Controller
 {
     private readonly ISupplierService _supplierService;

@@ -1,0 +1,161 @@
+@using SIGID.Web.Extensions
+@model RegisterSaleViewModel
+@{
+    ViewData["Title"] = "Registrar venta";
+    ViewData["Subtitle"] = "Cada producto vendido descuenta sus existencias y genera una salida de inventario";
+    var info = ViewData["InfoMessage"] as string;
+    var inSale = Model.Lines.Select(l => l.ProductId).ToHashSet();
+}
+
+@section PageActions {
+    <a class="btn btn-quiet" asp-action="Index"><svg class="icon"><use href="#i-receipt" /></svg> Historial de ventas</a>
+}
+
+@if (Model.Products.Count == 0 && Model.Lines.Count == 0)
+{
+    <section class="panel form-panel">
+        <div class="empty">
+            <span class="empty-icon"><svg class="icon"><use href="#i-box" /></svg></span>
+            <h3>No hay productos activos</h3>
+            <p>Para registrar una venta primero necesitas productos activos con existencias en el catálogo.</p>
+            <a class="btn btn-primary" asp-controller="Products" asp-action="Index"><svg class="icon"><use href="#i-box" /></svg> Ver productos</a>
+        </div>
+    </section>
+}
+else
+{
+    <form asp-action="Create" method="post" novalidate class="panel form-panel" data-submit-once>
+        <input type="hidden" asp-for="RequestId" />
+
+        @if (Model.ErrorMessages.Count > 0)
+        {
+            <div class="notice notice-error" role="alert" style="margin: 22px 24px 0;">
+                <svg class="icon"><use href="#i-alert" /></svg>
+                <span>
+                    <strong>@Model.ErrorTitle</strong>
+                    @foreach (var message in Model.ErrorMessages)
+                    {
+                        <span class="sale-alert-line">@message</span>
+                    }
+                </span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(info))
+        {
+            <div class="notice notice-info" role="status" style="margin: 22px 24px 0;">
+                <svg class="icon"><use href="#i-info" /></svg><span>@info</span>
+            </div>
+        }
+
+        <div class="form-section">
+            <h2 class="form-section-title">Agregar producto</h2>
+            <p class="form-section-note">Si eliges un producto que ya está en la venta, se suma la cantidad.</p>
+
+            <div class="sale-add">
+                <div class="field">
+                    <label asp-for="NewProductId" class="field-label"></label>
+                    <select asp-for="NewProductId" class="select">
+                        <option value="">Seleccione un producto</option>
+                        @foreach (var p in Model.Products)
+                        {
+                            <option value="@p.Id">@p.SKU — @p.Name (disponible: @p.CurrentStock @p.UnitOfMeasure)@(inSale.Contains(p.Id) ? " · en la venta" : "")</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewProductId"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="NewQuantity" class="field-label"></label>
+                    <input asp-for="NewQuantity" class="input" type="number" min="1" step="1" inputmode="numeric" />
+                    <span asp-validation-for="NewQuantity"></span>
+                </div>
+                <div class="sale-add-action">
+                    <button type="submit" name="command" value="add" class="btn btn-secondary">
+                        <svg class="icon"><use href="#i-plus" /></svg> Agregar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="form-section-title">Productos de la venta</h2>
+            <p class="form-section-note">La venta se registra con la fecha y hora actuales al confirmar.</p>
+        </div>
+
+        @if (Model.Lines.Count == 0)
+        {
+            <div class="empty" style="padding: 24px 24px 36px;">
+                <span class="empty-icon"><svg class="icon"><use href="#i-cart" /></svg></span>
+                <h3>Aún no hay productos en la venta</h3>
+                <p>Selecciona un producto, indica la cantidad y pulsa «Agregar».</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table sale-lines">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-end">Disponible</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end"><span class="visually-hidden">Acciones</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Lines.Count; i++)
+                        {
+                            var line = Model.Lines[i];
+                            <tr>
+                                <td>
+                                    <input type="hidden" asp-for="Lines[i].ProductId" />
+                                    @if (line.Product is null)
+                                    {
+                                        <span class="cell-main">Producto no disponible</span>
+                                        <span class="cell-sub">Ya no está activo. Quítalo de la venta.</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="cell-main">@line.Product.Name</span>
+                                        <span class="cell-sub sku">@line.Product.SKU</span>
+                                    }
+                                </td>
+                                <td class="text-end num secondary">
+                                    @if (line.Product is not null)
+                                    {
+                                        <span class="@(line.ExceedsStock ? "sale-short" : "")">@line.Product.CurrentStock @line.Product.UnitOfMeasure</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <input asp-for="Lines[i].Quantity" class="input sale-qty" type="number" min="1" step="1" inputmode="numeric"
+                                           aria-label="Cantidad de @(line.Product?.Name ?? "producto")"
+                                           data-sale-qty data-stock="@line.Product?.CurrentStock" data-unit="@line.Product?.UnitOfMeasure" />
+                                    <span asp-validation-for="Lines[i].Quantity"></span>
+                                </td>
+                                <td>
+                                    <div class="actions">
+                                        <button type="submit" name="command" value="remove:@i" class="icon-button is-danger"
+                                                title="Quitar" aria-label="Quitar @(line.Product?.Name ?? "producto") de la venta">
+                                            <svg class="icon"><use href="#i-trash" /></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="result-bar">
+                <span><strong>@Model.Lines.Count</strong> @(Model.Lines.Count == 1 ? "producto" : "productos")</span>
+                @* Se suma por unidad de medida: no se mezclan, por ejemplo, UND con CAJA. *@
+                <span>Total: <strong>@QuantityFormat.TotalsByUnit(Model.Lines.Where(l => l.Product is not null).Select(l => (l.Quantity ?? 0, l.Product!.UnitOfMeasure)))</strong></span>
+            </div>
+        }
+
+        <div class="form-actions">
+            <a class="btn btn-quiet" asp-action="Index">Cancelar</a>
+            <button type="submit" name="command" value="confirm" class="btn btn-primary" disabled="@(Model.Lines.Count == 0)">
+                <svg class="icon"><use href="#i-check" /></svg> Confirmar venta
+            </button>
+        </div>
+    </form>
+}

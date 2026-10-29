@@ -22,6 +22,45 @@ namespace SIGID.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SIGID.Domain.Entities.Administrator", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("UserName")
+                        .IsUnique();
+
+                    b.ToTable("Administrators", (string)null);
+                });
+
             modelBuilder.Entity("SIGID.Domain.Entities.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -78,12 +117,17 @@ namespace SIGID.Infrastructure.Persistence.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SaleId")
+                        .HasColumnType("int");
+
                     b.Property<int>("StockAfter")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Date");
+
+                    b.HasIndex("SaleId");
 
                     b.HasIndex("ProductId", "Date");
 
@@ -161,6 +205,60 @@ namespace SIGID.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SIGID.Domain.Entities.Sale", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
+                    b.ToTable("Sales", (string)null);
+                });
+
+            modelBuilder.Entity("SIGID.Domain.Entities.SaleDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SaleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SaleId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("SaleDetails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SaleDetails_Quantity", "[Quantity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SIGID.Domain.Entities.Supplier", b =>
                 {
                     b.Property<int>("Id")
@@ -212,7 +310,14 @@ namespace SIGID.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SIGID.Domain.Entities.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Product");
+
+                    b.Navigation("Sale");
                 });
 
             modelBuilder.Entity("SIGID.Domain.Entities.Product", b =>
@@ -234,6 +339,25 @@ namespace SIGID.Infrastructure.Persistence.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("SIGID.Domain.Entities.SaleDetail", b =>
+                {
+                    b.HasOne("SIGID.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SIGID.Domain.Entities.Sale", "Sale")
+                        .WithMany("Details")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Sale");
+                });
+
             modelBuilder.Entity("SIGID.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Products");
@@ -242,6 +366,11 @@ namespace SIGID.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("SIGID.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Movements");
+                });
+
+            modelBuilder.Entity("SIGID.Domain.Entities.Sale", b =>
+                {
+                    b.Navigation("Details");
                 });
 
             modelBuilder.Entity("SIGID.Domain.Entities.Supplier", b =>

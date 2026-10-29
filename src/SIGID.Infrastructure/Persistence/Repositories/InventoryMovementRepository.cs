@@ -17,7 +17,12 @@ public class InventoryMovementRepository : IInventoryMovementRepository
     public async Task<bool> RegisterAsync(InventoryMovement movement, CancellationToken cancellationToken = default)
     {
         // El cambio de existencias y el movimiento se guardan juntos: o se guardan ambos o ninguno.
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        // Si ya hay una transacción abierta (por ejemplo, la de una venta), se usa esa misma
+        // y quien la abrió decide si confirmar o revertir.
+        var ownsTransaction = _context.Database.CurrentTransaction is null;
+        await using var transaction = ownsTransaction
+            ? await _context.Database.BeginTransactionAsync(cancellationToken)
+            : null;
 
         var quantity = movement.Quantity;
         int rowsUpdated;
@@ -40,7 +45,8 @@ public class InventoryMovementRepository : IInventoryMovementRepository
 
         if (rowsUpdated == 0)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            if (transaction is not null)
+                await transaction.RollbackAsync(cancellationToken);
             return false;
         }
 
@@ -52,7 +58,8 @@ public class InventoryMovementRepository : IInventoryMovementRepository
         _context.InventoryMovements.Add(movement);
         await PersistenceErrors.SaveChangesAsync(_context, "No se pudo registrar el movimiento de inventario.", cancellationToken);
 
-        await transaction.CommitAsync(cancellationToken);
+        if (transaction is not null)
+            await transaction.CommitAsync(cancellationToken);
         return true;
     }
 

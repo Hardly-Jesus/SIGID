@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SIGID.Application.Exceptions;
@@ -11,6 +12,7 @@ namespace SIGID.Web.Controllers;
 /// Gestión de productos (HU-05).
 /// Flujo: View → Controller → Service (Application) → Repository (Infrastructure) → SQL Server.
 /// </summary>
+[Authorize]
 public class ProductsController : Controller
 {
     private readonly IProductService _productService;

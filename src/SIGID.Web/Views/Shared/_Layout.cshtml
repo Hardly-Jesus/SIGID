@@ -10,6 +10,9 @@
 
     var success = TempData["SuccessMessage"] as string;
     var error = TempData["ErrorMessage"] as string;
+
+    // El menú y el cierre de sesión solo se muestran con una sesión iniciada.
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -35,6 +38,8 @@
                 </span>
             </a>
 
+            @if (isAuthenticated)
+            {
             <nav class="nav">
                 <div class="nav-group">
                     <a class="nav-link @Active("Home")" asp-controller="Home" asp-action="Index">
@@ -71,15 +76,37 @@
                     </a>
                 </div>
 
+                <div class="nav-group">
+                    <p class="nav-title">Ventas</p>
+                    <a class="nav-link @Active("Sales", "Create")" asp-controller="Sales" asp-action="Create">
+                        <svg class="icon"><use href="#i-cart" /></svg> Registrar venta
+                    </a>
+                    <a class="nav-link @Active("Sales", "Index", "Details")" asp-controller="Sales" asp-action="Index">
+                        <svg class="icon"><use href="#i-receipt" /></svg> Historial de ventas
+                    </a>
+                </div>
+
                 @* Módulos de próximos sprints: se muestran como no disponibles, sin enlace. *@
                 <div class="nav-group">
                     <p class="nav-title">Próximos sprints</p>
-                    <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-cart" /></svg> Ventas</span>
                     <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-trend" /></svg> Predicción</span>
                     <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-bell" /></svg> Alertas</span>
                     <span class="nav-link is-disabled" aria-disabled="true"><svg class="icon"><use href="#i-report" /></svg> Reportes</span>
                 </div>
             </nav>
+
+            <div class="sidebar-user">
+                <span class="sidebar-user-name">
+                    <svg class="icon"><use href="#i-user" /></svg>
+                    <span>@User.Identity?.Name</span>
+                </span>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="nav-link nav-button">
+                        <svg class="icon"><use href="#i-logout" /></svg> Cerrar sesión
+                    </button>
+                </form>
+            </div>
+            }
 
         </aside>
 
