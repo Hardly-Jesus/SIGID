@@ -25,24 +25,24 @@ public class InventoryController : Controller
     }
 
     // GET: /Inventory/Entries
-    public async Task<IActionResult> Entries(CancellationToken cancellationToken)
+    public async Task<IActionResult> Entries(int page = 1, CancellationToken cancellationToken = default)
     {
         var model = new MovementListViewModel
         {
-            MovementType = MovementType.Entry,
-            Movements = await _inventoryService.GetEntriesAsync(cancellationToken)
+            MovementType = MovementType.Entry
         };
+        await LoadPageAsync(model, page, nameof(Entries), cancellationToken);
         return View(model);
     }
 
     // GET: /Inventory/Exits
-    public async Task<IActionResult> Exits(CancellationToken cancellationToken)
+    public async Task<IActionResult> Exits(int page = 1, CancellationToken cancellationToken = default)
     {
         var model = new MovementListViewModel
         {
-            MovementType = MovementType.Exit,
-            Movements = await _inventoryService.GetExitsAsync(cancellationToken)
+            MovementType = MovementType.Exit
         };
+        await LoadPageAsync(model, page, nameof(Exits), cancellationToken);
         return View(model);
     }
 
@@ -114,7 +114,7 @@ public class InventoryController : Controller
     }
 
     // GET: /Inventory/History?productId=1&type=Entry&from=2026-10-01&to=2026-10-08
-    public async Task<IActionResult> History(int? productId, MovementType? type, DateTime? from, DateTime? to, CancellationToken cancellationToken)
+    public async Task<IActionResult> History(int? productId, MovementType? type, DateTime? from, DateTime? to, int page = 1, CancellationToken cancellationToken = default)
     {
         var model = new MovementHistoryViewModel
         {
@@ -127,7 +127,28 @@ public class InventoryController : Controller
 
         try
         {
-            model.Movements = await _inventoryService.GetHistoryAsync(model.ToFilter(), cancellationToken);
+            // Solo se carga la página visible; los totales vienen calculados de la base de datos.
+            var result = await _inventoryService.GetHistoryPageAsync(model.ToFilter(), page, PagerViewModel.DefaultPageSize, cancellationToken);
+            model.Movements = result.Items;
+            model.TotalCount = result.TotalCount;
+            model.TotalEntries = result.TotalEntries;
+            model.TotalExits = result.TotalExits;
+            model.Pager = new PagerViewModel
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                TotalPages = result.TotalPages,
+                ItemsName = "movimientos",
+                Action = nameof(History),
+                RouteValues = new()
+                {
+                    ["productId"] = productId?.ToString(),
+                    ["type"] = type?.ToString(),
+                    ["from"] = from?.ToString("yyyy-MM-dd"),
+                    ["to"] = to?.ToString("yyyy-MM-dd")
+                }
+            };
         }
         catch (BusinessException ex)
         {
@@ -135,6 +156,23 @@ public class InventoryController : Controller
         }
 
         return View(model);
+    }
+
+    // Carga una página de entradas o de salidas.
+    private async Task LoadPageAsync(MovementListViewModel model, int page, string action, CancellationToken cancellationToken)
+    {
+        var result = await _inventoryService.GetMovementsPageAsync(model.MovementType, page, PagerViewModel.DefaultPageSize, cancellationToken);
+        model.Movements = result.Items;
+        model.TotalCount = result.TotalCount;
+        model.Pager = new PagerViewModel
+        {
+            Page = result.Page,
+            PageSize = result.PageSize,
+            TotalCount = result.TotalCount,
+            TotalPages = result.TotalPages,
+            ItemsName = model.IsEntry ? "entradas" : "salidas",
+            Action = action
+        };
     }
 
     private async Task<MovementFormViewModel> NewFormAsync(MovementType type, int? productId, CancellationToken cancellationToken)

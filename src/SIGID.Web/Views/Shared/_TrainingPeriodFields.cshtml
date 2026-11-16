@@ -1,0 +1,27 @@
+@using SIGID.Application.DTOs.Demand
+@using SIGID.Web.Extensions
+@model TrainingPeriodFieldsViewModel
+@* Selector «Historial de entrenamiento». Las fechas solo se muestran con la opción Personalizado. *@
+<div class="field">
+    <label class="field-label" for="trainingPeriod">Historial de entrenamiento</label>
+    <select class="select" id="trainingPeriod" name="trainingPeriod" data-training-period>
+        @foreach (var period in Enum.GetValues<TrainingPeriod>())
+        {
+            <option value="@((int)period)" selected="@(period == Model.TrainingPeriod)">@DemandFormat.TrainingPeriodName(period)</option>
+        }
+    </select>
+</div>
+<div class="filters-range" data-training-range hidden="@(Model.TrainingPeriod != TrainingPeriod.Custom)">
+    <div class="field">
+        <label class="field-label" for="startDate">Desde</label>
+        <input class="input" type="date" id="startDate" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+    </div>
+    <div class="field">
+        <label class="field-label" for="endDate">Hasta</label>
+        <input class="input" type="date" id="endDate" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+    </div>
+    @if (Model.Hint is not null)
+    {
+        <p class="filters-range-hint">@Model.Hint</p>
+    }
+</div>

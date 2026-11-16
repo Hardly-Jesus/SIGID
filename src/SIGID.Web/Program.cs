@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using SIGID.Application.Configuration;
 using SIGID.Application.Interfaces.Services;
 using SIGID.Application.Services.Authentication;
 using SIGID.Application.Services.Categories;
 using SIGID.Application.Services.Dashboard;
+using SIGID.Application.Services.Demand;
 using SIGID.Application.Services.Inventory;
 using SIGID.Application.Services.Products;
 using SIGID.Application.Services.Sales;
@@ -34,6 +36,26 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
+
+// ---------------------------------------------------------------
+// EP-05: análisis y predicción de demanda
+// ---------------------------------------------------------------
+// Los parámetros se leen de appsettings (secciones "DemandForecast" y "SyntheticData").
+var forecastOptions = builder.Configuration.GetSection("DemandForecast").Get<DemandForecastOptions>() ?? new DemandForecastOptions();
+forecastOptions.Validate();
+builder.Services.AddSingleton(forecastOptions);
+
+// La generación de datos de prueba solo se habilita en desarrollo, aunque la configuración diga lo contrario.
+var syntheticOptions = builder.Configuration.GetSection("SyntheticData").Get<SyntheticDataOptions>() ?? new SyntheticDataOptions();
+syntheticOptions.Enabled = syntheticOptions.Enabled && builder.Environment.IsDevelopment();
+builder.Services.AddSingleton(syntheticOptions);
+
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<ISyntheticSalesService, SyntheticSalesService>();
+builder.Services.AddScoped<IDemandHistoryService, DemandHistoryService>();
+builder.Services.AddScoped<ISalesAnalysisService, SalesAnalysisService>();
+builder.Services.AddScoped<IDemandForecastService, DemandForecastService>();
+builder.Services.AddScoped<IDemandForecastEvaluationService, DemandForecastEvaluationService>();
 
 // ---------------------------------------------------------------
 // Autenticación del administrador (cookies) — HU-11 / HU-12

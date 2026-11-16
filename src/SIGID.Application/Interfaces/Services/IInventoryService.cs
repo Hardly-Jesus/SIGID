@@ -1,3 +1,4 @@
+using SIGID.Domain.Enums;
 using SIGID.Application.DTOs;
 using SIGID.Application.DTOs.Sales;
 
@@ -31,4 +32,14 @@ public interface IInventoryService
     /// Historial con filtros combinables, ordenado del más reciente al más antiguo.
     /// </summary>
     Task<IReadOnlyList<InventoryMovementDto>> GetHistoryAsync(MovementFilterDto filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Historial filtrado por páginas, con los totales de entradas y salidas de todo el resultado.
+    /// </summary>
+    Task<MovementHistoryPageDto> GetHistoryPageAsync(MovementFilterDto filter, int page, int pageSize, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Entradas o salidas por páginas (más recientes primero).
+    /// </summary>
+    Task<PagedResultDto<InventoryMovementDto>> GetMovementsPageAsync(MovementType movementType, int page, int pageSize, CancellationToken cancellationToken = default);
 }

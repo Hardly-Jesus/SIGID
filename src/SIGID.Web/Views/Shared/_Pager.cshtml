@@ -1,0 +1,28 @@
+@using SIGID.Web.Extensions
+@model PagerViewModel
+@* Paginación discreta de los historiales. Solo aparece si hay más de una página. *@
+@if (Model.TotalPages > 1)
+{
+    <nav class="pager" aria-label="Paginación">
+        <span>Mostrando <strong>@DemandFormat.Count(Model.FirstItem)–@DemandFormat.Count(Model.LastItem)</strong> de <strong>@DemandFormat.Count(Model.TotalCount)</strong> @Model.ItemsName</span>
+        <div class="pager-actions">
+            @if (Model.Page > 1)
+            {
+                <a class="btn btn-secondary btn-pager" asp-action="@Model.Action" asp-all-route-data="Model.RouteFor(Model.Page - 1)" rel="prev">Anterior</a>
+            }
+            else
+            {
+                <span class="btn btn-secondary btn-pager is-disabled" aria-disabled="true">Anterior</span>
+            }
+            <span class="pager-page">Página @DemandFormat.Count(Model.Page) de @DemandFormat.Count(Model.TotalPages)</span>
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a class="btn btn-secondary btn-pager" asp-action="@Model.Action" asp-all-route-data="Model.RouteFor(Model.Page + 1)" rel="next">Siguiente</a>
+            }
+            else
+            {
+                <span class="btn btn-secondary btn-pager is-disabled" aria-disabled="true">Siguiente</span>
+            }
+        </div>
+    </nav>
+}

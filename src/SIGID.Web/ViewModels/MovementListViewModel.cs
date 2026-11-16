@@ -13,4 +13,11 @@ public class MovementListViewModel
     public IReadOnlyList<InventoryMovementDto> Movements { get; set; } = Array.Empty<InventoryMovementDto>();
 
     public bool IsEntry => MovementType == MovementType.Entry;
+
+    /// <summary>
+    /// Total de entradas o salidas (todas las páginas).
+    /// </summary>
+    public int TotalCount { get; set; }
+
+    public PagerViewModel Pager { get; set; } = new();
 }

@@ -28,6 +28,20 @@ public interface IInventoryMovementRepository
         DateTime? toDate = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Una página del historial filtrado (más recientes primero) y el total de registros.
+    /// </summary>
+    Task<(IReadOnlyList<InventoryMovement> Items, int TotalCount)> SearchPageAsync(
+        int? productId, MovementType? movementType, DateTime? fromDate, DateTime? toDate,
+        int page, int pageSize, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Suma de unidades que entraron y salieron con los filtros indicados (calculada en la base de datos).
+    /// </summary>
+    Task<(int Entries, int Exits)> GetQuantityTotalsAsync(
+        int? productId, MovementType? movementType, DateTime? fromDate, DateTime? toDate,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<InventoryMovement>> GetAllAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<InventoryMovement>> GetByProductAsync(int productId, CancellationToken cancellationToken = default);

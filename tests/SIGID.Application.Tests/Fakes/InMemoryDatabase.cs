@@ -27,6 +27,8 @@ public class InMemoryDatabase
 
     public List<Sale> Sales { get; } = new();
 
+    public List<SyntheticSalesBatch> SyntheticBatches { get; } = new();
+
     private int _nextId = 1;
 
     public int NextId() => Interlocked.Increment(ref _nextId);
@@ -73,5 +75,16 @@ public class InMemoryDatabase
         Products.Add(product);
         FillNavigation(product);
         return product;
+    }
+
+    /// <summary>
+    /// Registra una venta real de un producto en una fecha.
+    /// </summary>
+    public Sale AddSale(DateTime date, Product product, int quantity)
+    {
+        var sale = new Sale { Id = NextId(), Date = date, RequestId = Guid.NewGuid() };
+        sale.Details.Add(new SaleDetail { Id = NextId(), SaleId = sale.Id, ProductId = product.Id, Quantity = quantity });
+        Sales.Add(sale);
+        return sale;
     }
 }

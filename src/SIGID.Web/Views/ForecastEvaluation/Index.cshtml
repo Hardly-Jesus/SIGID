@@ -1,0 +1,177 @@
+@using SIGID.Application.DTOs.Demand
+@using SIGID.Web.Extensions
+@model ForecastEvaluationViewModel
+@{
+    ViewData["Title"] = "Precisión del modelo";
+    ViewData["Subtitle"] = "Compara las estimaciones del modelo con ventas ya conocidas";
+    var r = Model.Result;
+    var unit = r?.UnitOfMeasure ?? "";
+    var hasQuery = r is not null || Model.ErrorMessage is not null;
+}
+
+<section class="panel">
+    <form method="get" asp-action="Index" class="filters filters-forecast" role="search">
+        <partial name="_DemandProductSelect" model="(Model.Products, Model.ProductId)" />
+        <partial name="_DataSourceSelect" model="Model.DataSource" />
+        <partial name="_TrainingPeriodFields" model="@(new TrainingPeriodFieldsViewModel { TrainingPeriod = Model.TrainingPeriod, StartDate = Model.StartDate, EndDate = Model.EndDate, Hint = "Fechas del entrenamiento. Se evalúan los días que siguen a la fecha final, que deben ser anteriores a hoy." })" />
+        <div class="field">
+            <label class="field-label" for="evaluationHorizon">Días a evaluar</label>
+            <input class="input num" type="number" id="evaluationHorizon" name="evaluationHorizon" value="@Model.EvaluationHorizon" min="@Model.MinEvaluationDays" max="@Model.MaxEvaluationDays" step="1" inputmode="numeric" />
+        </div>
+        <div class="filters-actions">
+            <button type="submit" class="btn btn-primary"><svg class="icon"><use href="#i-target" /></svg> Evaluar</button>
+        </div>
+    </form>
+    <p class="filters-hint">Se reservan los últimos días (de @Model.MinEvaluationDays a @Model.MaxEvaluationDays) para evaluar. El modelo se entrena solo con el historial elegido, que termina el día anterior al período evaluado, y luego se comparan sus estimaciones con lo que realmente se vendió.</p>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="notice @(r?.IsTechnicalError == true ? "notice-error" : "notice-warning") demand-inline-notice" role="alert">
+            <svg class="icon"><use href="#i-alert" /></svg>
+            <span>
+                @Model.ErrorMessage
+                @if (r?.Availability is { } a && !r.IsTechnicalError)
+                {
+                    <span class="sale-alert-line">Estado del historial: <strong>@DemandFormat.Status(a.Status)</strong> · período elegido de @a.RequestedDayCount días, @a.ObservationCount con información y @a.DaysWithSales con ventas.</span>
+                }
+            </span>
+        </div>
+    }
+</section>
+
+@if (!hasQuery)
+{
+    <section class="panel">
+        <div class="empty">
+            <span class="empty-icon"><svg class="icon"><use href="#i-target" /></svg></span>
+            <h3>Selecciona un producto para continuar.</h3>
+            <p>La evaluación muestra qué tan cerca estuvo el modelo de las ventas reales en un período reciente.</p>
+        </div>
+    </section>
+}
+else if (r is { IsSuccessful: true })
+{
+    <partial name="_DataSourceNotice" model="r.DataSource" />
+
+    var verdict = r.Comparison switch
+    {
+        ModelComparison.SsaBetter => ("El modelo SSA tuvo menor error que la referencia en este período.", "is-better"),
+        ModelComparison.BaselineBetter => ("La referencia (repetir el último valor) tuvo menor error que SSA en este período.", "is-worse"),
+        _ => ("Ambos modelos tuvieron un error equivalente en este período.", "is-equal")
+    };
+
+    @* Precaución informativa en ámbar suave; se puede ocultar con la X (por ejemplo, para capturas). *@
+    <div class="notice notice-warning" role="note" data-dismissible>
+        <svg class="icon"><use href="#i-info" /></svg>
+        <span>Los resultados corresponden al período evaluado. Un error menor en este período no garantiza la precisión futura del modelo.</span>
+        <button type="button" class="notice-close notice-close-lg" aria-label="Cerrar aviso" title="Cerrar aviso" data-dismiss><svg class="icon"><use href="#i-x" /></svg></button>
+    </div>
+
+    @if (r.IsUnfavorable && (r.IsZeroForecast || r.WAPE >= 100 || r.Comparison != ModelComparison.SsaBetter))
+    {
+        <div class="notice notice-info" role="status">
+            <svg class="icon"><use href="#i-info" /></svg>
+            <span>
+                Durante este período, el modelo no consiguió anticipar adecuadamente las ventas registradas.
+                @if (r.IsZeroForecast && r.TotalActualQuantity > 0)
+                {
+                    @(" Estimó 0 en todos los días evaluados, aunque hubo ventas.")
+                }
+                @if (r.Profile is { Behavior: DemandBehavior.Sporadic })
+                {
+                    @(" Este producto presenta ventas poco frecuentes: revisa el historial antes de usar sus estimaciones para planificar compras.")
+                }
+            </span>
+        </div>
+    }
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">@r.ProductName</h2>
+                <p class="panel-note">Entrenamiento (@DemandFormat.TrainingPeriodName(r.TrainingPeriod).ToLowerInvariant()): @DemandFormat.Date(r.TrainingStartDate) – @DemandFormat.Date(r.TrainingEndDate) (@r.TrainingObservationCount días) · Evaluación: @DemandFormat.Date(r.EvaluationStartDate) – @DemandFormat.Date(r.EvaluationEndDate) (@r.EvaluationObservationCount días)</p>
+                @if (r.Profile is { } profile)
+                {
+                    <p class="panel-note">@DemandFormat.Behavior(profile.Behavior) en el entrenamiento: ventas en @profile.DaysWithSales de @profile.ObservedDays días · SSA con ventana de @r.WindowSize días</p>
+                }
+            </div>
+            <a class="btn btn-secondary" asp-controller="DemandForecast" asp-action="Index" asp-route-productId="@r.ProductId" asp-route-dataSource="@((int)r.DataSource)" asp-route-forecastHorizon="14" asp-route-trainingPeriod="@((int)(r.TrainingPeriod == TrainingPeriod.Custom ? TrainingPeriod.Last12Months : r.TrainingPeriod))">
+                <svg class="icon"><use href="#i-trend" /></svg> Ver predicción
+            </a>
+        </div>
+
+        <div class="metrics-verdict @verdict.Item2"><svg class="icon"><use href="#i-check" /></svg> @verdict.Item1</div>
+
+        <div class="table-wrap">
+            <table class="table metrics-table demand-table">
+                <thead>
+                    <tr>
+                        <th>Modelo</th>
+                        <th class="text-end">MAE</th>
+                        <th class="text-end">RMSE</th>
+                        <th class="text-end">WAPE</th>
+                        <th class="text-end col-optional">Total estimado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="@(r.Comparison == ModelComparison.SsaBetter ? "is-best" : "")">
+                        <td><span class="cell-main">SSA (ML.NET)</span><span class="cell-sub">Modelo predictivo de SIGID</span></td>
+                        <td class="text-end num cell-main">@DemandFormat.Metric(r.MAE)</td>
+                        <td class="text-end num">@DemandFormat.Metric(r.RMSE)</td>
+                        <td class="text-end num">@DemandFormat.Percent(r.WAPE)</td>
+                        <td class="text-end num col-optional">@DemandFormat.Estimate(r.TotalPredictedQuantity)</td>
+                    </tr>
+                    <tr class="@(r.Comparison == ModelComparison.BaselineBetter ? "is-best" : "")">
+                        <td><span class="cell-main">Referencia</span><span class="cell-sub">Repite la última venta conocida</span></td>
+                        <td class="text-end num cell-main">@DemandFormat.Metric(r.BaselineMAE)</td>
+                        <td class="text-end num">@DemandFormat.Metric(r.BaselineRMSE)</td>
+                        <td class="text-end num">@DemandFormat.Percent(r.BaselineWAPE)</td>
+                        <td class="text-end num col-optional">@DemandFormat.Quantity(r.TotalBaselineQuantity)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <dl class="metric-help">
+            <div><dt>MAE</dt><dd>Error absoluto medio: cuántas @unit se equivoca la estimación por día, en promedio.</dd></div>
+            <div><dt>RMSE</dt><dd>Raíz del error cuadrático medio: como el MAE, pero pesa más los errores grandes.</dd></div>
+            <div><dt>WAPE</dt><dd>Error total en porcentaje de lo vendido. No se calcula si en el período no hubo ventas.</dd></div>
+        </dl>
+        <p class="metric-total">Vendido en el período evaluado: <strong>@DemandFormat.Quantity(r.TotalActualQuantity) @unit</strong>. En productos con muchos días sin ventas, el MAE favorece estimar 0; compara también el total estimado con lo vendido.</p>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Ventas reales y estimadas</h2>
+            <span class="panel-note">Período de evaluación</span>
+        </div>
+        <div class="panel-body">
+            <partial name="_DemandChart" model="Model.Chart" />
+        </div>
+        <div class="table-wrap">
+            <table class="table demand-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th class="text-end">Real</th>
+                        <th class="text-end">Estimado (SSA)</th>
+                        <th class="text-end col-optional">Error absoluto</th>
+                        <th class="text-end col-optional">Referencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in r.EvaluationPeriods)
+                    {
+                        <tr>
+                            <td class="nowrap"><span class="cell-main num">@p.Date.ToString("dd/MM/yyyy")</span> <span class="muted">@DemandFormat.DayName(p.Date)</span></td>
+                            <td class="text-end num cell-main">@DemandFormat.Quantity(p.ActualQuantity)</td>
+                            <td class="text-end num">@DemandFormat.Estimate(p.PredictedQuantity)</td>
+                            <td class="text-end num secondary col-optional">@DemandFormat.Estimate(p.AbsoluteError)</td>
+                            <td class="text-end num secondary col-optional">@DemandFormat.Quantity(p.BaselineQuantity)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}

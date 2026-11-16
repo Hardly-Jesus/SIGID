@@ -1,0 +1,10 @@
+@using SIGID.Application.DTOs.Demand
+@model SalesDataSource
+@* Aviso que identifica los resultados obtenidos con datos de prueba (HU-17). *@
+@if (Model == SalesDataSource.Synthetic)
+{
+    <div class="notice notice-warning" role="note">
+        <svg class="icon"><use href="#i-flask" /></svg>
+        <span><strong>Estás utilizando datos de prueba.</strong> Estos resultados no representan ventas reales.</span>
+    </div>
+}

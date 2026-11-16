@@ -594,3 +594,113 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
     .table-wrap .table.sale-history td:first-child { min-width: 0; white-space: nowrap; }
     .sale-history .sale-items { min-width: 200px; }
 }
+
+/* =====================================================================
+   Sprint 4 (EP-05) — solo clases nuevas; las anteriores no se modifican.
+   ===================================================================== */
+
+/* ---------- Filtros de demanda ---------- */
+.filters.filters-demand { grid-template-columns: 2fr 1fr 1fr 1fr 1.1fr auto; }
+.filters.filters-forecast { grid-template-columns: 1.8fr 1fr 1.15fr 0.85fr auto; }
+.filters-range { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 200px)) 1fr; align-items: end; gap: 14px; }
+.filters-range[hidden] { display: none; }
+.filters-range-hint { margin: 0 0 10px; font-size: 0.84rem; color: var(--text-muted); }
+.metric-total { margin: 0; padding: 0 22px 20px; font-size: 0.86rem; color: var(--text-secondary); }
+.filters-hint { padding: 0 22px 18px; margin-top: -6px; font-size: 0.84rem; color: var(--text-muted); }
+.demand-inline-notice { margin: 0 22px 18px; }
+.panel-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.panel + .notice { margin-top: 20px; }
+.notice-close.notice-close-lg { padding: 7px; margin: -6px -8px -6px 0; }
+.demand-footnote { margin-top: 14px; font-size: 0.84rem; color: var(--text-muted); max-width: 90ch; }
+
+/* ---------- Indicadores ---------- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin: 20px 0; }
+.stat { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; background: var(--background-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); min-width: 0; }
+.stat-label { font-size: 0.85rem; color: var(--text-secondary); }
+.stat-value { font-size: 1.55rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
+.stat-value small { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.stat-value-sm { font-size: 1.05rem; letter-spacing: -0.01em; }
+.stat-note { font-size: 0.82rem; color: var(--text-muted); }
+.trend-increasing { color: color-mix(in srgb, var(--color-green) 75%, var(--text-primary)); }
+.trend-decreasing { color: color-mix(in srgb, var(--color-danger) 75%, var(--text-primary)); }
+.trend-stable { color: var(--color-primary); }
+.trend-notenoughdata { color: var(--text-muted); font-size: 1.05rem; }
+.delta-up { color: color-mix(in srgb, var(--color-green) 75%, var(--text-primary)); }
+.delta-down { color: color-mix(in srgb, var(--color-danger) 75%, var(--text-primary)); }
+.chip-estimate { margin-left: 6px; background: color-mix(in srgb, var(--color-purple) 10%, var(--background-card)); color: color-mix(in srgb, var(--color-purple) 80%, var(--text-primary)); }
+
+/* ---------- Gráfico de demanda (SVG) ---------- */
+.chart { margin: 0; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 14px; font-size: 0.86rem; color: var(--text-secondary); }
+.chart-key { display: inline-flex; align-items: center; gap: 7px; }
+.chart-key i { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--color-primary); border-radius: 2px; }
+.chart-key.is-forecast i { border-top: 2.5px dashed var(--color-purple); }
+.chart-key.is-actual i { border-top-color: var(--color-primary); }
+.chart-key.is-reference i { border-top: 2px dashed var(--text-muted); }
+.chart-key.is-band i { height: 10px; border: 0; border-radius: 3px; background: color-mix(in srgb, var(--color-purple) 16%, transparent); }
+.chart-body { display: flex; gap: 10px; }
+.chart-y { position: relative; width: 44px; flex: none; height: 240px; }
+.chart-y span { position: absolute; right: 0; transform: translateY(-50%); font-size: 0.78rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-plot { position: relative; flex: 1; min-width: 0; height: 240px; }
+.chart-plot svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.chart-grid { stroke: var(--background-surface); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-line { fill: none; stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.chart-line.is-history, .chart-line.is-actual { stroke: var(--color-primary); }
+.chart-line.is-forecast { stroke: var(--color-purple); stroke-dasharray: 6 4; }
+.chart-line.is-reference { stroke: var(--text-muted); stroke-width: 1.75; stroke-dasharray: 3 4; }
+.chart-band { fill: color-mix(in srgb, var(--color-purple) 14%, transparent); stroke: none; }
+.chart-divider { stroke: var(--text-subtle); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.chart-divider-label { position: absolute; top: -2px; transform: translateX(6px); font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; background: var(--background-card); padding: 0 4px; border-radius: 4px; }
+.chart-hit { fill: transparent; }
+.chart-hit:hover { fill: color-mix(in srgb, var(--color-primary) 6%, transparent); }
+.chart-x { position: relative; height: 22px; margin: 8px 0 0 54px; }
+.chart-x span { position: absolute; top: 0; transform: translateX(-50%); font-size: 0.78rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-x span:first-child { transform: none; }
+.chart-x span:last-child { transform: translateX(-100%); }
+
+/* ---------- Evaluación del modelo ---------- */
+.metrics-verdict { display: flex; align-items: center; gap: 9px; margin: 0 22px 16px; padding: 11px 14px; border-radius: var(--radius-md); font-weight: 550; font-size: 0.95rem; background: var(--background-secondary); color: var(--text-primary); }
+.metrics-verdict.is-better { background: color-mix(in srgb, var(--color-green) 10%, var(--background-card)); color: color-mix(in srgb, var(--color-green) 55%, var(--text-primary)); }
+.metrics-verdict.is-worse { background: var(--color-primary-light); color: var(--color-primary); }
+.metrics-table tr.is-best td { background: color-mix(in srgb, var(--color-green) 6%, var(--background-card)); }
+.metric-help { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 18px 22px 22px; border-top: 1px solid var(--border); }
+.metric-help dt { font-weight: 600; font-size: 0.9rem; }
+.metric-help dd { margin: 2px 0 0; color: var(--text-secondary); font-size: 0.86rem; }
+
+/* ---------- Datos de prueba ---------- */
+.select.select-multiple { height: auto; min-height: 150px; padding: 6px; background-image: none; }
+.select.select-multiple option { padding: 5px 8px; border-radius: 6px; }
+
+@media (max-width: 1100px) {
+    .filters.filters-demand, .filters.filters-forecast { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+    .filters.filters-demand, .filters.filters-forecast { grid-template-columns: 1fr; }
+    .filters-range { grid-template-columns: 1fr 1fr; }
+    .filters-range-hint { grid-column: 1 / -1; margin: 0; }
+    .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat { padding: 13px 14px; }
+    .stat-value { font-size: 1.25rem; }
+    .chart-y { width: 34px; height: 190px; }
+    .chart-plot { height: 190px; }
+    .chart-x { margin-left: 44px; }
+    .metric-help { grid-template-columns: 1fr; }
+    .chip-estimate { display: none; }
+    .table.demand-table { min-width: 0; }
+    .table.demand-table th, .table.demand-table td { padding-left: 10px; padding-right: 10px; }
+    .table-wrap .table.demand-table td:first-child { min-width: 0; padding-left: 16px; }
+    .table.demand-table th:first-child { padding-left: 16px; }
+    .table.demand-table td:last-child, .table.demand-table th:last-child { padding-right: 16px; }
+    .chart-x span:nth-child(even):not(:last-child) { display: none; }
+    .panel-header { flex-wrap: wrap; }
+    .panel-actions { justify-content: flex-start; }
+}
+
+/* ---------- Paginación de historiales (optimización EP-05) ---------- */
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 22px; border-top: 1px solid var(--border); font-size: 0.9rem; color: var(--text-secondary); }
+.pager strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pager-actions { display: flex; align-items: center; gap: 8px; }
+.pager-page { font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.btn.btn-pager { height: 32px; padding: 0 12px; font-size: 0.86rem; }
+.btn.btn-pager.is-disabled { color: var(--text-subtle); cursor: default; pointer-events: none; }

@@ -1,0 +1,9 @@
+@using SIGID.Application.DTOs.Demand
+@model SalesDataSource
+<div class="field">
+    <label class="field-label" for="dataSource">Origen de datos</label>
+    <select class="select" id="dataSource" name="dataSource">
+        <option value="@((int)SalesDataSource.Real)" selected="@(Model == SalesDataSource.Real)">Ventas reales</option>
+        <option value="@((int)SalesDataSource.Synthetic)" selected="@(Model == SalesDataSource.Synthetic)">Datos de prueba</option>
+    </select>
+</div>

@@ -98,3 +98,10 @@ document.querySelectorAll("[data-sale-qty]").forEach(function (input) {
         input.classList.toggle("input-validation-error", text !== "");
     });
 });
+
+// Historial de entrenamiento: las fechas Desde/Hasta solo se muestran con la opción Personalizado (6).
+document.querySelectorAll("[data-training-period]").forEach(function (select) {
+    var range = select.form && select.form.querySelector("[data-training-range]");
+    if (!range) return;
+    select.addEventListener("change", function () { range.hidden = select.value !== "6"; });
+});

@@ -93,6 +93,43 @@ public class InventoryService : IInventoryService
         return movements.Select(MapToDto).ToList();
     }
 
+    public async Task<MovementHistoryPageDto> GetHistoryPageAsync(MovementFilterDto filter, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        if (filter.FromDate.HasValue && filter.ToDate.HasValue && filter.FromDate.Value.Date > filter.ToDate.Value.Date)
+            throw new BusinessException("La fecha inicial no puede ser posterior a la fecha final.", nameof(MovementFilterDto.FromDate));
+
+        DateTime? from = filter.FromDate?.Date;
+        DateTime? to = filter.ToDate?.Date.AddDays(1).AddTicks(-1);
+
+        page = Math.Max(1, page);
+        var (items, total) = await _movementRepository.SearchPageAsync(filter.ProductId, filter.MovementType, from, to, page, pageSize, cancellationToken);
+
+        // Si la página pedida ya no existe (por ejemplo, tras cambiar los filtros), se muestra la última.
+        var lastPage = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+        if (page > lastPage)
+        {
+            page = lastPage;
+            (items, total) = await _movementRepository.SearchPageAsync(filter.ProductId, filter.MovementType, from, to, page, pageSize, cancellationToken);
+        }
+
+        var result = new MovementHistoryPageDto
+        {
+            Items = items.Select(MapToDto).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total
+        };
+
+        // Los totales solo tienen sentido para un mismo producto (misma unidad de medida).
+        if (filter.ProductId.HasValue)
+            (result.TotalEntries, result.TotalExits) = await _movementRepository.GetQuantityTotalsAsync(filter.ProductId, filter.MovementType, from, to, cancellationToken);
+
+        return result;
+    }
+
+    public async Task<PagedResultDto<InventoryMovementDto>> GetMovementsPageAsync(MovementType movementType, int page, int pageSize, CancellationToken cancellationToken = default)
+        => await GetHistoryPageAsync(new MovementFilterDto { MovementType = movementType }, page, pageSize, cancellationToken);
+
     // ------------------------------------------------------------------
     // Registro de movimientos
     // ------------------------------------------------------------------
