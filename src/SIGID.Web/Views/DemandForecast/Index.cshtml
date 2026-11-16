@@ -1,0 +1,189 @@
+@using SIGID.Application.DTOs.Demand
+@using SIGID.Web.Extensions
+@model DemandForecastViewModel
+@{
+    ViewData["Title"] = "Predicción de demanda";
+    ViewData["Subtitle"] = "Demanda estimada por producto con el modelo SSA";
+    var f = Model.Filter;
+    var unit = Model.UnitOfMeasure;
+}
+
+<section class="panel">
+    <form method="get" asp-action="Index" class="filters filters-forecast" role="search">
+        <partial name="_DemandProductSelect" model="(Model.Products, f.ProductId)" />
+        <partial name="_DataSourceSelect" model="f.DataSource" />
+        <partial name="_TrainingPeriodFields" model="@(new TrainingPeriodFieldsViewModel { TrainingPeriod = f.TrainingPeriod, StartDate = f.StartDate, EndDate = f.EndDate, Hint = "El historial personalizado debe terminar, como máximo, ayer." })" />
+        <div class="field">
+            <label class="field-label" for="forecastHorizon">Horizonte (días)</label>
+            <input class="input num" type="number" id="forecastHorizon" name="forecastHorizon" value="@f.ForecastHorizon" min="@Model.MinHorizon" max="@Model.MaxHorizon" step="1" inputmode="numeric" />
+        </div>
+        <div class="filters-actions">
+            <button type="submit" class="btn btn-primary"><svg class="icon"><use href="#i-trend" /></svg> Generar predicción</button>
+        </div>
+    </form>
+    <p class="filters-hint">El horizonte puede ser de @Model.MinHorizon a @Model.MaxHorizon días. El modelo se entrena solo con el historial elegido, hasta ayer como máximo: las ventas de hoy todavía no están completas.</p>
+
+    @if (Model.HasQuery && !Model.IsSuccessful && Model.ErrorMessage is not null)
+    {
+        <div class="notice @(Model.IsTechnicalError ? "notice-error" : "notice-warning") demand-inline-notice" role="alert">
+            <svg class="icon"><use href="#i-alert" /></svg>
+            <span>
+                @Model.ErrorMessage
+                @if (Model.Availability is { } a && !Model.IsTechnicalError)
+                {
+                    <span class="sale-alert-line">Estado del historial: <strong>@DemandFormat.Status(a.Status)</strong> · período elegido de @a.RequestedDayCount días, @a.ObservationCount con información y @a.DaysWithSales con ventas.</span>
+                }
+            </span>
+        </div>
+    }
+</section>
+
+@if (!Model.HasQuery)
+{
+    <section class="panel">
+        <div class="empty">
+            <span class="empty-icon"><svg class="icon"><use href="#i-trend" /></svg></span>
+            <h3>Selecciona un producto para continuar.</h3>
+            <p>Elige el producto, el origen de los datos y cuántos días quieres pronosticar. Los resultados son estimaciones, no ventas confirmadas.</p>
+        </div>
+    </section>
+}
+else if (Model.IsSuccessful)
+{
+    <partial name="_DataSourceNotice" model="Model.DataSource" />
+
+    @if (Model.IsZeroForecast)
+    {
+        <div class="notice notice-info" role="status">
+            <svg class="icon"><use href="#i-info" /></svg>
+            <span>La demanda estimada para este período es cero. Esto no significa que el producto no vaya a venderse. Revisa su comportamiento histórico y la precisión del modelo antes de tomar decisiones.</span>
+        </div>
+    }
+
+    @if (Model.Profile is { Behavior: DemandBehavior.Sporadic })
+    {
+        <div class="notice notice-info" role="status">
+            <svg class="icon"><use href="#i-info" /></svg>
+            <span>Este producto presenta ventas poco frecuentes. La predicción puede ser menos precisa, por lo que recomendamos revisar el historial y la evaluación del modelo antes de tomar decisiones de reposición.</span>
+        </div>
+    }
+
+    @if (Model.Profile is { StoppedSelling: true })
+    {
+        <div class="notice notice-info" role="status">
+            <svg class="icon"><use href="#i-info" /></svg>
+            <span>Este producto no registra ventas en los últimos @Model.Profile.TrailingDaysWithoutSales días del historial. Si dejó de venderse, la estimación puede ser mayor que la demanda real: revisa su situación antes de reponer.</span>
+        </div>
+    }
+
+    @if (Model.Availability is { Status: DemandDataStatus.ForecastOnly })
+    {
+        <div class="notice notice-info" role="status">
+            <svg class="icon"><use href="#i-info" /></svg>
+            <span>Predicción disponible sin evaluación suficiente: todavía no hay historial para medir su precisión (se necesitan @Model.Availability.RequiredForEvaluationCount días).</span>
+        </div>
+    }
+
+    <div class="stats">
+        <div class="stat">
+            <span class="stat-label">Demanda total estimada</span>
+            <strong class="stat-value num">@DemandFormat.Estimate(Model.TotalPredictedQuantity) <small>@unit</small></strong>
+            <span class="stat-note">En @Model.ForecastHorizon @(Model.ForecastHorizon == 1 ? "día" : "días")</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Promedio estimado por día</span>
+            <strong class="stat-value num">@DemandFormat.Estimate(Model.AveragePredictedQuantity) <small>@unit</small></strong>
+            <span class="stat-note">Estimación, no garantizada</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Período pronosticado</span>
+            <strong class="stat-value stat-value-sm num">@DemandFormat.Date(Model.ForecastStartDate) – @DemandFormat.Date(Model.ForecastEndDate)</strong>
+            <span class="stat-note">Fecha de referencia: @DemandFormat.Date(Model.ReferenceDate)</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Historial utilizado</span>
+            <strong class="stat-value stat-value-sm num">@DemandFormat.Date(Model.HistoricalStartDate) – @DemandFormat.Date(Model.HistoricalEndDate)</strong>
+            <span class="stat-note">@Model.TrainingObservationCount días · @DemandFormat.TrainingPeriodName(Model.TrainingPeriod) · @DemandFormat.Source(Model.DataSource)</span>
+            @if (Model.HistoricalStartDate > Model.RequestedStartDate)
+            {
+                <span class="stat-note">Hay información desde el @DemandFormat.Date(Model.HistoricalStartDate); el período elegido empezaba el @DemandFormat.Date(Model.RequestedStartDate).</span>
+            }
+        </div>
+        @if (Model.Profile is { } profile)
+        {
+            <div class="stat">
+                <span class="stat-label">Comportamiento de las ventas</span>
+                <strong class="stat-value stat-value-sm">@DemandFormat.Behavior(profile.Behavior)</strong>
+                <span class="stat-note">Ventas en @profile.DaysWithSales de @profile.ObservedDays días (@DemandFormat.Quantity(100 - profile.ZeroDayPercent) %) · @DemandFormat.Quantity(profile.AverageDailyQuantity) @unit por día</span>
+            </div>
+        }
+    </div>
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">@Model.ProductName</h2>
+                <p class="panel-note">@(Model.HistoricalPeriods.Count < Model.TrainingObservationCount ? $"Últimos {Model.HistoricalPeriods.Count} de {Model.TrainingObservationCount} días de entrenamiento" : $"Los {Model.TrainingObservationCount} días de entrenamiento") y demanda estimada</p>
+            </div>
+            <div class="panel-actions">
+                <a class="btn btn-quiet" asp-controller="SalesAnalysis" asp-action="Index" asp-route-productId="@Model.ProductId" asp-route-dataSource="@((int)Model.DataSource)"
+                   asp-route-startDate="@Model.HistoricalEndDate?.AddMonths(-3).AddDays(1).ToString("yyyy-MM-dd")" asp-route-endDate="@Model.HistoricalEndDate?.ToString("yyyy-MM-dd")">
+                    <svg class="icon"><use href="#i-back" /></svg> Análisis de ventas
+                </a>
+                <a class="btn btn-secondary" asp-controller="ForecastEvaluation" asp-action="Index" asp-route-productId="@Model.ProductId" asp-route-dataSource="@((int)Model.DataSource)" asp-route-trainingPeriod="@((int)(Model.TrainingPeriod == TrainingPeriod.Custom ? TrainingPeriod.Last12Months : Model.TrainingPeriod))">
+                    <svg class="icon"><use href="#i-target" /></svg> Precisión del modelo
+                </a>
+            </div>
+        </div>
+        <div class="panel-body">
+            <partial name="_DemandChart" model="Model.Chart" />
+            <p class="demand-footnote">
+                La línea continua son ventas registradas; la línea discontinua es la demanda estimada por el modelo SSA, entrenado con @Model.TrainingObservationCount días y una ventana de @Model.WindowSize días.
+                @if (Model.HasPredictionBounds)
+                {
+                    @("El rango sombreado muestra dónde podría estar la demanda con un 95 % de confianza según el modelo; no es una garantía de exactitud.")
+                }
+            </p>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Demanda estimada por día</h2>
+            <span class="panel-note">Valores estimados · @unit</span>
+        </div>
+        <div class="table-wrap">
+            <table class="table demand-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th class="text-end">Cantidad estimada</th>
+                        @if (Model.HasPredictionBounds)
+                        {
+                            <th class="text-end col-optional">Límite inferior</th>
+                            <th class="text-end col-optional">Límite superior</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.ForecastPeriods)
+                    {
+                        <tr>
+                            <td class="nowrap"><span class="cell-main num">@p.Date.ToString("dd/MM/yyyy")</span> <span class="muted">@DemandFormat.DayName(p.Date)</span></td>
+                            <td class="text-end num"><span class="cell-main">@DemandFormat.Estimate(p.PredictedQuantity)</span> <span class="chip chip-estimate">Estimado</span></td>
+                            @if (Model.HasPredictionBounds)
+                            {
+                                <td class="text-end num secondary col-optional">@DemandFormat.Estimate(p.LowerBound!.Value)</td>
+                                <td class="text-end num secondary col-optional">@DemandFormat.Estimate(p.UpperBound!.Value)</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="result-bar">
+            <span>Total estimado: <strong>@DemandFormat.Estimate(Model.TotalPredictedQuantity) @unit</strong></span>
+            <span>Promedio por día: <strong>@DemandFormat.Estimate(Model.AveragePredictedQuantity) @unit</strong></span>
+        </div>
+    </section>
+}

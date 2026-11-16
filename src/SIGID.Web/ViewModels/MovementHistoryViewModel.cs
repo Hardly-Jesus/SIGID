@@ -22,9 +22,19 @@ public class MovementHistoryViewModel
 
     public bool HasFilters => ProductId.HasValue || Type.HasValue || From.HasValue || To.HasValue;
 
-    public int TotalEntries => Movements.Where(m => m.MovementType == MovementType.Entry).Sum(m => m.Quantity);
+    /// <summary>
+    /// Totales de todo el resultado filtrado (no solo de la página visible).
+    /// </summary>
+    public int TotalEntries { get; set; }
 
-    public int TotalExits => Movements.Where(m => m.MovementType == MovementType.Exit).Sum(m => m.Quantity);
+    public int TotalExits { get; set; }
+
+    /// <summary>
+    /// Total de movimientos con los filtros aplicados (todas las páginas).
+    /// </summary>
+    public int TotalCount { get; set; }
+
+    public PagerViewModel Pager { get; set; } = new();
 
     public MovementFilterDto ToFilter() => new()
     {

@@ -1,0 +1,11 @@
+@model (IReadOnlyList<SIGID.Application.DTOs.ProductDto> Products, int? Selected)
+<div class="field">
+    <label class="field-label" for="productId">Producto</label>
+    <select class="select" id="productId" name="productId">
+        <option value="">Selecciona un producto</option>
+        @foreach (var p in Model.Products)
+        {
+            <option value="@p.Id" selected="@(p.Id == Model.Selected)">@p.SKU — @p.Name@(p.IsActive ? "" : " (inactivo)")</option>
+        }
+    </select>
+</div>

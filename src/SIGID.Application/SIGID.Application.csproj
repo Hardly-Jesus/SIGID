@@ -11,4 +11,9 @@
     <ProjectReference Include="..\SIGID.Domain\SIGID.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Permite probar las funciones internas de cálculo desde el proyecto de pruebas. -->
+    <InternalsVisibleTo Include="SIGID.Application.Tests" />
+  </ItemGroup>
+
 </Project>

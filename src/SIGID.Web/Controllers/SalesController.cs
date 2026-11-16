@@ -25,7 +25,7 @@ public class SalesController : Controller
     }
 
     // GET: /Sales?productId=1&from=2026-10-01&to=2026-10-20
-    public async Task<IActionResult> Index(int? productId, DateTime? from, DateTime? to, CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(int? productId, DateTime? from, DateTime? to, int page = 1, CancellationToken cancellationToken = default)
     {
         var model = new SaleHistoryViewModel
         {
@@ -37,7 +37,24 @@ public class SalesController : Controller
 
         try
         {
-            model.Sales = await _saleService.GetHistoryAsync(model.ToFilter(), cancellationToken);
+            // Solo se carga la página visible del historial.
+            var result = await _saleService.GetHistoryPageAsync(model.ToFilter(), page, PagerViewModel.DefaultPageSize, cancellationToken);
+            model.Sales = result.Items;
+            model.TotalCount = result.TotalCount;
+            model.Pager = new PagerViewModel
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                TotalPages = result.TotalPages,
+                ItemsName = "ventas",
+                RouteValues = new()
+                {
+                    ["productId"] = productId?.ToString(),
+                    ["from"] = from?.ToString("yyyy-MM-dd"),
+                    ["to"] = to?.ToString("yyyy-MM-dd")
+                }
+            };
         }
         catch (BusinessException ex)
         {

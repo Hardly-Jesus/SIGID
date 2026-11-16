@@ -71,7 +71,7 @@
     else
     {
         <div class="result-bar" style="border-bottom: 1px solid var(--border);">
-            <span><strong>@Model.Movements.Count</strong> @(Model.Movements.Count == 1 ? "movimiento" : "movimientos")@(Model.HasFilters ? " con los filtros aplicados" : "")</span>
+            <span><strong>@SIGID.Web.Extensions.DemandFormat.Count(Model.TotalCount)</strong> @(Model.TotalCount == 1 ? "movimiento" : "movimientos")@(Model.HasFilters ? " con los filtros aplicados" : "")</span>
             @if (Model.ProductId.HasValue)
             {
                 @* Los totales solo se suman para un mismo producto (misma unidad de medida). *@
@@ -83,5 +83,6 @@
             }
         </div>
         <partial name="_MovementTable" model="Model.Movements" />
+        <partial name="_Pager" model="Model.Pager" />
     }
 </section>

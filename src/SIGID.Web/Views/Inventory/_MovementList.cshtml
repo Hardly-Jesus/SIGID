@@ -18,8 +18,9 @@
     {
         <partial name="_MovementTable" model="Model.Movements" view-data='new ViewDataDictionary(ViewData) { ["ShowType"] = false }' />
         <div class="result-bar">
-            <span><strong>@Model.Movements.Count</strong> @(Model.Movements.Count == 1 ? "movimiento" : "movimientos")</span>
+            <span><strong>@SIGID.Web.Extensions.DemandFormat.Count(Model.TotalCount)</strong> @(Model.TotalCount == 1 ? "movimiento" : "movimientos")</span>
             <a asp-action="History" asp-route-type="@Model.MovementType">Ver en el historial con filtros</a>
         </div>
+        <partial name="_Pager" model="Model.Pager" />
     }
 </section>

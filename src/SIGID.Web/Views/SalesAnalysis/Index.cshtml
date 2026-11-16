@@ -1,0 +1,181 @@
+@using SIGID.Application.DTOs.Demand
+@using SIGID.Web.Extensions
+@model SalesAnalysisViewModel
+@{
+    ViewData["Title"] = "Análisis de ventas";
+    ViewData["Subtitle"] = "Comportamiento histórico de las ventas de cada producto";
+    var r = Model.Result;
+    var unit = r?.UnitOfMeasure ?? "";
+}
+
+<section class="panel">
+    <form method="get" asp-action="Index" class="filters filters-demand" role="search">
+        <partial name="_DemandProductSelect" model="(Model.Products, Model.ProductId)" />
+        <div class="field">
+            <label class="field-label" for="startDate">Desde</label>
+            <input class="input" type="date" id="startDate" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label class="field-label" for="endDate">Hasta</label>
+            <input class="input" type="date" id="endDate" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="field">
+            <label class="field-label" for="groupBy">Mostrar por</label>
+            <select class="select" id="groupBy" name="groupBy">
+                <option value="@((int)SalesGrouping.Day)" selected="@(Model.GroupBy == SalesGrouping.Day)">Por día</option>
+                <option value="@((int)SalesGrouping.Week)" selected="@(Model.GroupBy == SalesGrouping.Week)">Por semana</option>
+                <option value="@((int)SalesGrouping.Month)" selected="@(Model.GroupBy == SalesGrouping.Month)">Por mes</option>
+            </select>
+        </div>
+        <partial name="_DataSourceSelect" model="Model.DataSource" />
+        <div class="filters-actions">
+            <button type="submit" class="btn btn-primary"><svg class="icon"><use href="#i-chart" /></svg> Consultar</button>
+        </div>
+    </form>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="notice notice-error demand-inline-notice" role="alert">
+            <svg class="icon"><use href="#i-alert" /></svg><span>@Model.ErrorMessage</span>
+        </div>
+    }
+</section>
+
+@if (r is null)
+{
+    @if (Model.ErrorMessage is null)
+    {
+        <section class="panel">
+            <div class="empty">
+                <span class="empty-icon"><svg class="icon"><use href="#i-chart" /></svg></span>
+                <h3>Selecciona un producto para continuar.</h3>
+                <p>Elige el producto, el período y la agrupación para ver cómo se vendió. El análisis describe lo que ya pasó; no es una predicción.</p>
+            </div>
+        </section>
+    }
+}
+else
+{
+    <partial name="_DataSourceNotice" model="r.DataSource" />
+
+    @if (r.Notice is not null)
+    {
+        <div class="notice notice-info" role="status">
+            <svg class="icon"><use href="#i-info" /></svg><span>@r.Notice</span>
+        </div>
+    }
+
+    @if (!r.HasSales)
+    {
+        <section class="panel">
+            <div class="empty">
+                <span class="empty-icon"><svg class="icon"><use href="#i-chart" /></svg></span>
+                <h3>@r.ProductName</h3>
+                <p>@(r.Periods.Count == 0 ? "No se encontraron datos de ventas para el período seleccionado." : "Este producto todavía no tiene ventas registradas para el período seleccionado.") Prueba con otro período u otro origen de datos.</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-label">Total vendido</span>
+                <strong class="stat-value num">@DemandFormat.Quantity(r.TotalQuantity) <small>@unit</small></strong>
+                <span class="stat-note">@DemandFormat.Date(r.KnownStartDate) – @DemandFormat.Date(r.KnownEndDate)</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Promedio @DemandFormat.GroupingUnit(r.GroupBy)</span>
+                <strong class="stat-value num">@DemandFormat.Quantity(Math.Round(r.AverageQuantity, 2)) <small>@unit</small></strong>
+                <span class="stat-note">@r.IndicatorPeriodCount @(r.GroupBy == SalesGrouping.Day ? "días" : "períodos completos"), incluidos los sin ventas</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Máximo</span>
+                <strong class="stat-value num">@DemandFormat.Quantity(r.MaximumQuantity) <small>@unit</small></strong>
+                <span class="stat-note">@DemandFormat.Period(r.MaximumPeriod!.Value, r.GroupBy)</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Mínimo</span>
+                <strong class="stat-value num">@DemandFormat.Quantity(r.MinimumQuantity) <small>@unit</small></strong>
+                <span class="stat-note">@DemandFormat.Period(r.MinimumPeriod!.Value, r.GroupBy)</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Tendencia</span>
+                <strong class="stat-value trend-@r.Trend.ToString().ToLowerInvariant()">@DemandFormat.Trend(r.Trend)</strong>
+                <span class="stat-note">
+                    @if (r.TrendChange is double change)
+                    {
+                        @($"{(change >= 0 ? "+" : "")}{DemandFormat.Quantity(Math.Round(change * 100, 1))} % en el período")
+                    }
+                    else
+                    {
+                        @("Se necesitan al menos 3 períodos")
+                    }
+                </span>
+            </div>
+        </div>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">@r.ProductName</h2>
+                    <p class="panel-note">Cantidades vendidas @DemandFormat.GroupingUnit(r.GroupBy) · @DemandFormat.Source(r.DataSource)</p>
+                </div>
+                <a class="btn btn-secondary" asp-controller="DemandForecast" asp-action="Index" asp-route-productId="@r.ProductId" asp-route-dataSource="@((int)r.DataSource)">
+                    <svg class="icon"><use href="#i-trend" /></svg> Ver predicción
+                </a>
+            </div>
+            <div class="panel-body">
+                <partial name="_DemandChart" model="Model.Chart" />
+                <p class="demand-footnote">La tendencia compara el inicio y el final del período con una recta de ajuste: más de +10 % es creciente, menos de −10 % es decreciente y lo demás es estable. Describe el pasado; no es una predicción.
+                    @if (r.Periods.Any(p => p.IsPartial) && r.IndicatorPeriodCount < r.Periods.Count)
+                    {
+                        @(" Las semanas o meses incompletos se muestran en el gráfico y la tabla, pero no se usan para el promedio, el máximo, el mínimo ni la tendencia.")
+                    }
+                </p>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Detalle por período</h2>
+                <span class="panel-note">@r.Periods.Count períodos</span>
+            </div>
+            <div class="table-wrap">
+                <table class="table demand-table">
+                    <thead>
+                        <tr>
+                            <th>Período</th>
+                            <th class="text-end">Cantidad vendida</th>
+                            <th class="text-end">Variación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in r.Periods)
+                        {
+                            <tr>
+                                <td class="num">
+                                    @DemandFormat.Period(p.Period, r.GroupBy)
+                                    @if (p.IsPartial)
+                                    {
+                                        <span class="cell-sub">Período incompleto: @p.DayCount @(p.DayCount == 1 ? "día" : "días") con información</span>
+                                    }
+                                </td>
+                                <td class="text-end num"><span class="cell-main">@DemandFormat.Quantity(p.TotalQuantity)</span> <span class="muted">@unit</span></td>
+                                <td class="text-end num">
+                                    @if (p.ChangeFromPrevious is double diff)
+                                    {
+                                        <span class="@(diff > 0 ? "delta-up" : diff < 0 ? "delta-down" : "muted")">@(diff > 0 ? "+" : "")@DemandFormat.Quantity(diff)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+}

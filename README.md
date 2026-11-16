@@ -2,7 +2,7 @@
 
 Proyecto académico para la gestión de inventarios y el análisis de la demanda de productos.
 
-**Estado actual: Sprint 3.** Incluye la gestión del catálogo (productos, categorías y proveedores), del inventario (entradas, salidas e historial de movimientos), el acceso protegido del administrador (inicio y cierre de sesión) y la gestión de ventas (registro con actualización automática de existencias e historial), con persistencia en SQL Server mediante Entity Framework Core.
+**Estado actual: Sprint 4 (EP-05).** Incluye la gestión del catálogo (productos, categorías y proveedores), del inventario (entradas, salidas e historial de movimientos), el acceso protegido del administrador (inicio y cierre de sesión) y la gestión de ventas (registro con actualización automática de existencias e historial), con persistencia en SQL Server mediante Entity Framework Core. Desde el Sprint 4 incluye también el análisis histórico de ventas, la predicción de demanda con ML.NET (algoritmo SSA), la evaluación de su precisión y un generador de datos de prueba para desarrollo.
 
 ## Tecnologías
 
@@ -10,6 +10,7 @@ Proyecto académico para la gestión de inventarios y el análisis de la demanda
 - ASP.NET Core MVC con Razor Views
 - Entity Framework Core 9 (proveedor SQL Server)
 - SQL Server (LocalDB, Express o instancia local)
+- ML.NET 4.0.3 (`Microsoft.ML` y `Microsoft.ML.TimeSeries`, algoritmo SSA) para la predicción de demanda
 - HTML, CSS y JavaScript sencillo (sin frameworks de interfaz)
 - xUnit para pruebas
 - Git / GitHub
@@ -34,9 +35,9 @@ SIGID.Web  ──►  SIGID.Application  ──►  SIGID.Domain
 
 | Proyecto | Responsabilidad | Depende de |
 |---|---|---|
-| `SIGID.Domain` | Entidades (`Product`, `Category`, `Supplier`, `InventoryMovement`, `Administrator`, `Sale`, `SaleDetail`) y enumerados | — |
+| `SIGID.Domain` | Entidades (`Product`, `Category`, `Supplier`, `InventoryMovement`, `Administrator`, `Sale`, `SaleDetail`, `SyntheticSalesBatch`, `SyntheticSalesRecord`) y enumerados | — |
 | `SIGID.Application` | Interfaces de repositorios y servicios, DTOs, servicios y reglas de negocio | Domain |
-| `SIGID.Infrastructure` | `SigidDbContext`, configuraciones EF Core, repositorios, transacciones (`EfTransactionRunner`), hash de contraseñas y migraciones | Application, Domain |
+| `SIGID.Infrastructure` | `SigidDbContext`, configuraciones EF Core, repositorios, transacciones (`EfTransactionRunner`), hash de contraseñas, migraciones y el motor de predicción SSA (`SsaDemandForecastEngine`, ML.NET) | Application, Domain |
 | `SIGID.Web` | Controllers, Views, ViewModels, estilos, autenticación por cookies y composición de la DI | Application, Infrastructure |
 
 Flujo de cada operación: **View → Controller → Service → Repository → SQL Server**.
@@ -55,7 +56,11 @@ Los controllers no acceden al `DbContext` ni contienen reglas de negocio; los er
 | Historial (HU-10) | `/Inventory/History` | Movimientos del más reciente al más antiguo, con filtros por producto, tipo y fechas |
 | Inicio de sesión (HU-11/12) | `/Account/Login` | Acceso del administrador con usuario o correo y contraseña. Única pantalla pública |
 | Registrar venta (HU-14/15) | `/Sales/Create` | Venta de uno o varios productos; descuenta existencias y genera una salida por producto |
-| Historial de ventas (HU-16) | `/Sales` | Ventas de la más reciente a la más antigua, con filtros por producto y fechas, y detalle de cada venta |
+| Historial de ventas (HU-16) | `/Sales` | Ventas de la más reciente a la más antigua, con filtros por producto y fechas, y detalle de cada venta (50 por página) |
+| Análisis de ventas (HU-18) | `/SalesAnalysis` | Total, promedio, máximo, mínimo y tendencia de un producto por día, semana o mes, con gráfico y tabla |
+| Predicción (HU-19/20) | `/DemandForecast` | Demanda estimada día por día (1 a 60 días) con el modelo SSA, eligiendo el historial de entrenamiento; total, promedio, rango estimado y comportamiento de las ventas |
+| Precisión del modelo (HU-21) | `/ForecastEvaluation` | MAE, RMSE y WAPE del modelo frente a un modelo de referencia, con ventas ya conocidas y el historial de entrenamiento elegido |
+| Datos de prueba (HU-17) | `/SyntheticData` | Solo en desarrollo y si está habilitado: genera historial simulado en tablas separadas |
 
 Todas las pantallas, salvo el inicio de sesión y la página de error, requieren una sesión iniciada (HU-13).
 
@@ -149,6 +154,7 @@ Las migraciones están en `src/SIGID.Infrastructure/Persistence/Migrations`:
 | `InitialCreate` (Sprint 1) | Tablas `Categories`, `Suppliers` y `Products` |
 | `Sprint2Inventory` (Sprint 2) | Columna `Products.CurrentStock` (0 para los productos existentes) y su restricción `>= 0`; `Suppliers.Identification` pasa a ser opcional con índice único filtrado; nueva tabla `InventoryMovements` |
 | `Sprint3SalesAuth` (Sprint 3) | Nuevas tablas `Administrators`, `Sales` y `SaleDetails`; columna opcional `InventoryMovements.SaleId` con su clave foránea |
+| `Sprint4DemandForecast` (Sprint 4) | Nuevas tablas `SyntheticSalesBatches` y `SyntheticSalesRecords` (datos de prueba, separados de las ventas reales). No cambia ninguna tabla existente |
 
 Las migraciones **no borran datos**: lo registrado en sprints anteriores se conserva. No use `Drop-Database` ni borre el historial de migraciones; basta con `Update-Database` sobre la base existente.
 
@@ -179,7 +185,8 @@ Add-Migration NombreDelCambio -Project SIGID.Infrastructure -StartupProject SIGI
 ## Pruebas
 
 - `SIGID.Domain.Tests`: regla de estado de existencias del producto.
-- `SIGID.Application.Tests`: reglas de negocio de productos, categorías, proveedores, inventario, dashboard, autenticación y ventas. Usan repositorios en memoria (`Fakes/`), sin necesidad de SQL Server.
+- `SIGID.Application.Tests`: reglas de negocio de productos, categorías, proveedores, inventario, dashboard, autenticación, ventas y, desde el Sprint 4, datos de prueba, análisis, predicción y evaluación. Usan repositorios en memoria (`Fakes/`), sin necesidad de SQL Server.
+- `SIGID.Infrastructure.Tests` (Sprint 4): el modelo SSA real de ML.NET y las consultas de EF Core de los repositorios de demanda, con una base SQLite temporal en memoria (solo para pruebas; la aplicación usa SQL Server).
 
 ```bash
 dotnet test
@@ -207,6 +214,17 @@ En Visual Studio: **Prueba → Ejecutar todas las pruebas**.
 6. **Ventas → Historial de ventas**: filtrar por producto y por fechas, abrir el detalle y volver.
 7. **Cerrar sesión**: vuelve al inicio de sesión y las pantallas dejan de estar disponibles.
 8. En SQL Server, revisar `Administrators` (solo hash), `Sales`, `SaleDetails` e `InventoryMovements.SaleId`.
+
+## Comprobación manual del Sprint 4 (EP-05)
+
+Detalle completo en `docs/EP-05_Modelo_SSA.md`; los cambios de la optimización, en `docs/EP-05_Optimizacion.md`.
+
+1. Aplicar la migración `Sprint4DemandForecast` con `Update-Database` (no borra datos).
+2. Para usar datos de prueba, habilitarlos solo en desarrollo: `dotnet user-secrets set "SyntheticData:Enabled" "true" --project src/SIGID.Web`. Aparece **Demanda → Datos de prueba**; generar un lote de 12 o 24 meses.
+3. **Demanda → Análisis de ventas**: elegir producto, fechas, agrupación y origen (ventas reales o datos de prueba).
+4. **Demanda → Predicción**: elegir producto, origen, historial de entrenamiento (por defecto, últimos 12 meses) y horizonte; revisar el gráfico, el total y la tabla.
+5. **Demanda → Precisión del modelo**: evaluar un producto con al menos 70 días de historial y comparar los resultados con 3, 6 y 12 meses de entrenamiento.
+6. Comprobar que existencias, movimientos y ventas reales no cambiaron.
 
 ## Flujo de trabajo con Git
 

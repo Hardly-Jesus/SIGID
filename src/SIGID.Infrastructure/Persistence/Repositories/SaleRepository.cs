@@ -54,11 +54,40 @@ public class SaleRepository : ISaleRepository
         CancellationToken cancellationToken = default)
     {
         // Se incluyen los productos para mostrar sus nombres y unidades en el historial.
-        var query = _context.Sales
-            .AsNoTracking()
+        // Más recientes primero; el Id desempata ventas con la misma fecha.
+        return await Filter(productId, fromDate, toDate)
             .Include(s => s.Details)
                 .ThenInclude(d => d.Product)
-            .AsQueryable();
+            .OrderByDescending(s => s.Date)
+            .ThenByDescending(s => s.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<Sale> Items, int TotalCount)> SearchPageAsync(
+        int? productId, DateTime? fromDate, DateTime? toDate,
+        int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = Filter(productId, fromDate, toDate);
+        var total = await query.CountAsync(cancellationToken);
+
+        // Primero se eligen las ventas de la página y después se cargan sus detalles.
+        var items = await query
+            .OrderByDescending(s => s.Date)
+            .ThenByDescending(s => s.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(s => s.Details)
+                .ThenInclude(d => d.Product)
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
+
+    // Filtros comunes del historial de ventas.
+    private IQueryable<Sale> Filter(int? productId, DateTime? fromDate, DateTime? toDate)
+    {
+        var query = _context.Sales.AsNoTracking();
 
         if (productId.HasValue)
             query = query.Where(s => s.Details.Any(d => d.ProductId == productId.Value));
@@ -69,11 +98,7 @@ public class SaleRepository : ISaleRepository
         if (toDate.HasValue)
             query = query.Where(s => s.Date <= toDate.Value);
 
-        // Más recientes primero; el Id desempata ventas con la misma fecha.
-        return await query
-            .OrderByDescending(s => s.Date)
-            .ThenByDescending(s => s.Id)
-            .ToListAsync(cancellationToken);
+        return query;
     }
 
     public Task<IReadOnlyList<Sale>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -102,5 +127,40 @@ public class SaleRepository : ISaleRepository
             .OrderBy(r => r.Day)
             .ThenBy(r => r.ProductName)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<DateTime, int>> GetDailyQuantitiesAsync(int productId, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
+    {
+        // Solo los detalles de este producto: si la venta tiene otros productos, no se cuentan.
+        var from = fromDate.Date;
+        var to = toDate.Date.AddDays(1);
+
+        var rows = await _context.SaleDetails
+            .AsNoTracking()
+            .Where(d => d.ProductId == productId && d.Sale!.Date >= from && d.Sale.Date < to)
+            .GroupBy(d => d.Sale!.Date.Date)
+            .Select(g => new { Day = g.Key, Quantity = g.Sum(d => d.Quantity) })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(r => r.Day, r => r.Quantity);
+    }
+
+    public async Task<DateTime?> GetFirstSaleDateAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Sales
+            .AsNoTracking()
+            .OrderBy(s => s.Date)
+            .Select(s => (DateTime?)s.Date)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<DateTime?> GetFirstSaleDateAsync(int productId, CancellationToken cancellationToken = default)
+    {
+        // Usa el índice de SaleDetails.ProductId; solo devuelve una fecha.
+        return await _context.SaleDetails
+            .AsNoTracking()
+            .Where(d => d.ProductId == productId)
+            .Select(d => (DateTime?)d.Sale!.Date)
+            .MinAsync(cancellationToken);
     }
 }

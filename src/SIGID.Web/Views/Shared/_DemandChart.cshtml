@@ -1,0 +1,161 @@
+@using System.Globalization
+@using SIGID.Web.Extensions
+@model DemandChartViewModel
+@{
+    // Gráfico de líneas dibujado en el servidor con SVG (sin bibliotecas externas).
+    // El área de dibujo mide 1000 × 300 y se estira al ancho disponible; los textos van en HTML
+    // para que no se deformen en pantallas pequeñas.
+    const double Width = 1000;
+    const double Height = 300;
+    var inv = CultureInfo.InvariantCulture;
+    var count = Model.Labels.Count;
+
+    var allValues = Model.Series.SelectMany(s => s.Values)
+        .Concat(Model.UpperBound ?? Array.Empty<double?>())
+        .Where(v => v.HasValue)
+        .Select(v => v!.Value)
+        .ToList();
+    var dataMax = allValues.Count == 0 ? 0 : allValues.Max();
+
+    // Escala con valores "redondos" (1, 2, 2,5 o 5 × 10ⁿ) y 4 divisiones.
+    double step;
+    if (dataMax <= 0) { step = 1; }
+    else
+    {
+        var raw = dataMax / 4;
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        var normalized = raw / magnitude;
+        step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 2.5 ? 2.5 : normalized <= 5 ? 5 : 10) * magnitude;
+    }
+    var maxValue = step * 4;
+
+    double X(int i) => count <= 1 ? Width / 2 : i * Width / (count - 1);
+    double Y(double v) => Height - Math.Max(0, v) / maxValue * Height;
+    string F(double v) => v.ToString("0.#", inv);
+
+    // Une los puntos con datos; un valor nulo corta la línea.
+    string LinePath(double?[] values)
+    {
+        var sb = new System.Text.StringBuilder();
+        var open = false;
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (values[i] is not double v) { open = false; continue; }
+            sb.Append(open ? " L" : " M").Append(F(X(i))).Append(' ').Append(F(Y(v)));
+            open = true;
+        }
+        // Con un solo punto se dibuja un tramo corto para que sea visible.
+        if (count == 1 && values.Length == 1 && values[0] is double only)
+            return $"M{F(Width / 2 - 20)} {F(Y(only))} L{F(Width / 2 + 20)} {F(Y(only))}";
+        return sb.ToString().Trim();
+    }
+
+    // Área entre el límite inferior y el superior, por tramos continuos.
+    string BandPath()
+    {
+        if (!Model.HasBand) return string.Empty;
+        var parts = new List<string>();
+        var i = 0;
+        while (i < count)
+        {
+            if (Model.LowerBound![i] is null || Model.UpperBound![i] is null) { i++; continue; }
+            var start = i;
+            while (i < count && Model.LowerBound[i] is not null && Model.UpperBound![i] is not null) i++;
+            var end = i - 1;
+            var sb = new System.Text.StringBuilder();
+            for (var j = start; j <= end; j++) sb.Append(j == start ? "M" : " L").Append(F(X(j))).Append(' ').Append(F(Y(Model.UpperBound![j]!.Value)));
+            for (var j = end; j >= start; j--) sb.Append(" L").Append(F(X(j))).Append(' ').Append(F(Y(Model.LowerBound[j]!.Value)));
+            sb.Append(" Z");
+            parts.Add(sb.ToString());
+        }
+        return string.Join(" ", parts);
+    }
+
+    // Etiquetas del eje temporal: como máximo 7, repartidas a lo largo del período.
+    var xTicks = new List<int>();
+    if (count <= 7) { xTicks.AddRange(Enumerable.Range(0, count)); }
+    else
+    {
+        var every = (int)Math.Ceiling((count - 1) / 6.0);
+        for (var i = 0; i < count; i += every) xTicks.Add(i);
+        if (count - 1 - xTicks[^1] >= every / 2.0) xTicks.Add(count - 1); else xTicks[^1] = count - 1;
+    }
+
+    double? dividerX = Model.DividerIndex is int d && d > 0 && d < count ? (X(d - 1) + X(d)) / 2 : null;
+    var slot = count <= 1 ? Width : Width / (count - 1);
+
+    string KindClass(DemandChartSeriesKind kind) => kind switch
+    {
+        DemandChartSeriesKind.Forecast => "is-forecast",
+        DemandChartSeriesKind.Actual => "is-actual",
+        DemandChartSeriesKind.Reference => "is-reference",
+        _ => "is-history"
+    };
+}
+
+<figure class="chart">
+    <figcaption class="chart-legend">
+        @foreach (var series in Model.Series)
+        {
+            <span class="chart-key @KindClass(series.Kind)"><i aria-hidden="true"></i>@series.Name</span>
+        }
+        @if (Model.HasBand)
+        {
+            <span class="chart-key is-band"><i aria-hidden="true"></i>@Model.BandName</span>
+        }
+    </figcaption>
+
+    <div class="chart-body">
+        <div class="chart-y" aria-hidden="true">
+            @for (var t = 0; t <= 4; t++)
+            {
+                <span style="top: @F((1 - t / 4.0) * 100)%">@DemandFormat.Quantity(step * t)</span>
+            }
+        </div>
+
+        <div class="chart-plot">
+            <svg viewBox="0 0 @F(Width) @F(Height)" preserveAspectRatio="none" role="img" aria-label="@Model.Description">
+                @for (var t = 0; t <= 4; t++)
+                {
+                    <line class="chart-grid" x1="0" x2="@F(Width)" y1="@F(Height - t * Height / 4)" y2="@F(Height - t * Height / 4)" />
+                }
+
+                @if (Model.HasBand)
+                {
+                    <path class="chart-band" d="@BandPath()" />
+                }
+
+                @if (dividerX is double dx)
+                {
+                    <line class="chart-divider" x1="@F(dx)" x2="@F(dx)" y1="0" y2="@F(Height)" />
+                }
+
+                @foreach (var series in Model.Series)
+                {
+                    <path class="chart-line @KindClass(series.Kind)" d="@LinePath(series.Values)" />
+                }
+
+                @* Zonas invisibles para ver el valor de cada fecha al pasar el cursor. *@
+                @for (var i = 0; i < count; i++)
+                {
+                    var tip = Model.Labels[i] + string.Concat(Model.Series
+                        .Where(s => s.Values[i].HasValue)
+                        .Select(s => $" · {s.Name}: {DemandFormat.Quantity(s.Values[i]!.Value)}"));
+                    <rect class="chart-hit" x="@F(Math.Max(0, X(i) - slot / 2))" y="0" width="@F(Math.Min(slot, Width))" height="@F(Height)"><title>@tip</title></rect>
+                }
+            </svg>
+
+            @if (dividerX is double label && Model.DividerLabel is not null)
+            {
+                <span class="chart-divider-label" style="left: @F(label / 10)%">@Model.DividerLabel</span>
+            }
+        </div>
+    </div>
+
+    <div class="chart-x" aria-hidden="true">
+        @foreach (var i in xTicks)
+        {
+            <span style="left: @F(X(i) / 10)%">@Model.Labels[i]</span>
+        }
+    </div>
+</figure>

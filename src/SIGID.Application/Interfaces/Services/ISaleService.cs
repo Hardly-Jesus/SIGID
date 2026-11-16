@@ -1,3 +1,4 @@
+using SIGID.Application.DTOs;
 using SIGID.Application.DTOs.Sales;
 
 namespace SIGID.Application.Interfaces.Services;
@@ -22,6 +23,11 @@ public interface ISaleService
     /// Historial con filtros combinables, de la venta más reciente a la más antigua.
     /// </summary>
     Task<IReadOnlyList<SaleHistoryDto>> GetHistoryAsync(SaleHistoryFilterDto filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Historial de ventas por páginas (más recientes primero).
+    /// </summary>
+    Task<PagedResultDto<SaleHistoryDto>> GetHistoryPageAsync(SaleHistoryFilterDto filter, int page, int pageSize, CancellationToken cancellationToken = default);
 
     Task<SaleHistoryDetailDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 

@@ -302,6 +302,93 @@ namespace SIGID.Infrastructure.Persistence.Migrations
                     b.ToTable("Suppliers", (string)null);
                 });
 
+            modelBuilder.Entity("SIGID.Domain.Entities.SyntheticSalesBatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ParametersKey")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("nvarchar(600)");
+
+                    b.Property<string>("Pattern")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("ProductCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductIds")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("RandomSeed")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecordCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParametersKey")
+                        .IsUnique();
+
+                    b.ToTable("SyntheticSalesBatches", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SyntheticSalesBatches_Dates", "[StartDate] <= [EndDate]");
+
+                            t.HasCheckConstraint("CK_SyntheticSalesBatches_RandomSeed", "[RandomSeed] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("SIGID.Domain.Entities.SyntheticSalesRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BatchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "Date");
+
+                    b.HasIndex("BatchId", "ProductId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("SyntheticSalesRecords", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SyntheticSalesRecords_Quantity", "[Quantity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SIGID.Domain.Entities.InventoryMovement", b =>
                 {
                     b.HasOne("SIGID.Domain.Entities.Product", "Product")
@@ -358,6 +445,25 @@ namespace SIGID.Infrastructure.Persistence.Migrations
                     b.Navigation("Sale");
                 });
 
+            modelBuilder.Entity("SIGID.Domain.Entities.SyntheticSalesRecord", b =>
+                {
+                    b.HasOne("SIGID.Domain.Entities.SyntheticSalesBatch", "Batch")
+                        .WithMany("Records")
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SIGID.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("SIGID.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Products");
@@ -376,6 +482,11 @@ namespace SIGID.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("SIGID.Domain.Entities.Supplier", b =>
                 {
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("SIGID.Domain.Entities.SyntheticSalesBatch", b =>
+                {
+                    b.Navigation("Records");
                 });
 #pragma warning restore 612, 618
         }

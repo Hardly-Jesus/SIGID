@@ -1,3 +1,4 @@
+using SIGID.Application.DTOs;
 using SIGID.Application.DTOs.Sales;
 using SIGID.Application.Exceptions;
 using SIGID.Application.Interfaces.Persistence;
@@ -224,26 +225,55 @@ public class SaleService : ISaleService
         DateTime? to = filter.EndDate?.Date.AddDays(1).AddTicks(-1);
 
         var sales = await _saleRepository.SearchAsync(filter.ProductId, from, to, cancellationToken);
-
-        return sales.Select(s => new SaleHistoryDto
-        {
-            Id = s.Id,
-            Date = s.Date,
-            ProductCount = s.Details.Count,
-            TotalQuantity = s.Details.Sum(d => d.Quantity),
-            Items = s.Details
-                .OrderBy(d => d.Product?.Name)
-                .Select(d => new SaleHistoryItemDto
-                {
-                    ProductId = d.ProductId,
-                    ProductName = d.Product?.Name ?? string.Empty,
-                    SKU = d.Product?.SKU ?? string.Empty,
-                    UnitOfMeasure = d.Product?.UnitOfMeasure ?? string.Empty,
-                    Quantity = d.Quantity
-                })
-                .ToList()
-        }).ToList();
+        return sales.Select(MapHistory).ToList();
     }
+
+    public async Task<PagedResultDto<SaleHistoryDto>> GetHistoryPageAsync(SaleHistoryFilterDto filter, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        if (filter.StartDate.HasValue && filter.EndDate.HasValue && filter.StartDate.Value.Date > filter.EndDate.Value.Date)
+            throw new BusinessException("La fecha inicial no puede ser posterior a la fecha final.", nameof(SaleHistoryFilterDto.StartDate));
+
+        DateTime? from = filter.StartDate?.Date;
+        DateTime? to = filter.EndDate?.Date.AddDays(1).AddTicks(-1);
+
+        page = Math.Max(1, page);
+        var (items, total) = await _saleRepository.SearchPageAsync(filter.ProductId, from, to, page, pageSize, cancellationToken);
+
+        // Si la página pedida ya no existe, se muestra la última.
+        var lastPage = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+        if (page > lastPage)
+        {
+            page = lastPage;
+            (items, total) = await _saleRepository.SearchPageAsync(filter.ProductId, from, to, page, pageSize, cancellationToken);
+        }
+
+        return new PagedResultDto<SaleHistoryDto>
+        {
+            Items = items.Select(MapHistory).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total
+        };
+    }
+
+    private static SaleHistoryDto MapHistory(Sale s) => new()
+    {
+        Id = s.Id,
+        Date = s.Date,
+        ProductCount = s.Details.Count,
+        TotalQuantity = s.Details.Sum(d => d.Quantity),
+        Items = s.Details
+            .OrderBy(d => d.Product?.Name)
+            .Select(d => new SaleHistoryItemDto
+            {
+                ProductId = d.ProductId,
+                ProductName = d.Product?.Name ?? string.Empty,
+                SKU = d.Product?.SKU ?? string.Empty,
+                UnitOfMeasure = d.Product?.UnitOfMeasure ?? string.Empty,
+                Quantity = d.Quantity
+            })
+            .ToList()
+    };
 
     public async Task<SaleHistoryDetailDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {

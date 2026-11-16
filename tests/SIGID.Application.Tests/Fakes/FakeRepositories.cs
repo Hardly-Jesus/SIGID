@@ -277,6 +277,23 @@ public class FakeInventoryMovementRepository : IInventoryMovementRepository
         }
     }
 
+    public async Task<(IReadOnlyList<InventoryMovement> Items, int TotalCount)> SearchPageAsync(
+        int? productId, MovementType? movementType, DateTime? fromDate, DateTime? toDate,
+        int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var all = await SearchAsync(productId, movementType, fromDate, toDate, cancellationToken);
+        return (all.Skip((page - 1) * pageSize).Take(pageSize).ToList(), all.Count);
+    }
+
+    public async Task<(int Entries, int Exits)> GetQuantityTotalsAsync(
+        int? productId, MovementType? movementType, DateTime? fromDate, DateTime? toDate,
+        CancellationToken cancellationToken = default)
+    {
+        var all = await SearchAsync(productId, movementType, fromDate, toDate, cancellationToken);
+        return (all.Where(m => m.MovementType == MovementType.Entry).Sum(m => m.Quantity),
+                all.Where(m => m.MovementType == MovementType.Exit).Sum(m => m.Quantity));
+    }
+
     public Task<IReadOnlyList<InventoryMovement>> GetAllAsync(CancellationToken cancellationToken = default)
         => SearchAsync(cancellationToken: cancellationToken);
 

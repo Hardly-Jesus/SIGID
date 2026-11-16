@@ -24,6 +24,10 @@ public class SigidDbContext : DbContext
 
     public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
 
+    public DbSet<SyntheticSalesBatch> SyntheticSalesBatches => Set<SyntheticSalesBatch>();
+
+    public DbSet<SyntheticSalesRecord> SyntheticSalesRecords => Set<SyntheticSalesRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

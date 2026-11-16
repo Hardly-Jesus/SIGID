@@ -167,6 +167,46 @@ public class FakeSaleRepository : ISaleRepository
         }
     }
 
+    public async Task<(IReadOnlyList<Sale> Items, int TotalCount)> SearchPageAsync(
+        int? productId, DateTime? fromDate, DateTime? toDate,
+        int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var all = await SearchAsync(productId, fromDate, toDate, cancellationToken);
+        return (all.Skip((page - 1) * pageSize).Take(pageSize).ToList(), all.Count);
+    }
+
+    public Task<IReadOnlyDictionary<DateTime, int>> GetDailyQuantitiesAsync(int productId, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
+    {
+        lock (_db.Sync)
+        {
+            IReadOnlyDictionary<DateTime, int> result = _db.Sales
+                .Where(s => s.Date.Date >= fromDate.Date && s.Date.Date <= toDate.Date)
+                .SelectMany(s => s.Details.Where(d => d.ProductId == productId).Select(d => new { Day = s.Date.Date, d.Quantity }))
+                .GroupBy(x => x.Day)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+            return Task.FromResult(result);
+        }
+    }
+
+    public Task<DateTime?> GetFirstSaleDateAsync(int productId, CancellationToken cancellationToken = default)
+    {
+        lock (_db.Sync)
+        {
+            var dates = _db.Sales.Where(s => s.Details.Any(d => d.ProductId == productId)).Select(s => s.Date).ToList();
+            DateTime? first = dates.Count == 0 ? null : dates.Min();
+            return Task.FromResult(first);
+        }
+    }
+
+    public Task<DateTime?> GetFirstSaleDateAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_db.Sync)
+        {
+            DateTime? first = _db.Sales.Count == 0 ? null : _db.Sales.Min(s => s.Date);
+            return Task.FromResult(first);
+        }
+    }
+
     // Devuelve una copia, como hace AsNoTracking: modificar el resultado no cambia lo guardado.
     private Sale Copy(Sale sale) => new()
     {

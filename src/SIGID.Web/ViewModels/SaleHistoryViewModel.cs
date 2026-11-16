@@ -18,6 +18,13 @@ public class SaleHistoryViewModel
 
     public IReadOnlyList<SaleHistoryDto> Sales { get; set; } = Array.Empty<SaleHistoryDto>();
 
+    /// <summary>
+    /// Total de ventas con los filtros aplicados (todas las páginas).
+    /// </summary>
+    public int TotalCount { get; set; }
+
+    public PagerViewModel Pager { get; set; } = new();
+
     public bool HasFilters => ProductId.HasValue || From.HasValue || To.HasValue;
 
     public SaleHistoryFilterDto ToFilter() => new()

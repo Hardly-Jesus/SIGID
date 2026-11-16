@@ -1,0 +1,130 @@
+@using SIGID.Domain.Enums
+@using SIGID.Web.Extensions
+@model SyntheticDataViewModel
+@{
+    ViewData["Title"] = "Datos de prueba";
+    ViewData["Subtitle"] = "Herramienta de desarrollo para generar historial de ventas simulado";
+    var formError = ViewData.ModelState[string.Empty]?.Errors.FirstOrDefault()?.ErrorMessage;
+}
+
+<div class="notice notice-warning" role="note">
+    <svg class="icon"><use href="#i-flask" /></svg>
+    <span><strong>Solo para desarrollo y pruebas.</strong> Los datos se guardan aparte de las ventas reales: no crean ventas, no cambian existencias y no registran movimientos de inventario.</span>
+</div>
+
+<section class="panel form-panel">
+    <form method="post" asp-action="Generate" data-submit-once>
+        <div class="form-section">
+            <h2 class="form-section-title">Generar un lote</h2>
+            <p class="form-section-note">La misma configuración (fechas, productos, patrón y semilla) genera siempre los mismos datos.</p>
+
+            @if (formError is not null)
+            {
+                <div class="notice notice-error" role="alert" style="margin: 16px 0 0;">
+                    <svg class="icon"><use href="#i-alert" /></svg><span>@formError</span>
+                </div>
+            }
+
+            <div class="form-grid">
+                <div class="field col-2">
+                    <label class="field-label required" for="StartDate">Fecha inicial</label>
+                    <input class="input" type="date" id="StartDate" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="field col-2">
+                    <label class="field-label required" for="EndDate">Fecha final</label>
+                    <input class="input" type="date" id="EndDate" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                    <span class="field-hint">Hasta 24 meses; no puede ser una fecha futura.</span>
+                </div>
+                <div class="field col-2">
+                    <label class="field-label required" for="DemandPattern">Patrón de demanda</label>
+                    <select class="select" id="DemandPattern" name="DemandPattern">
+                        @foreach (var pattern in Enum.GetValues<DemandPattern>())
+                        {
+                            <option value="@((int)pattern)" selected="@(pattern == Model.DemandPattern)">@DemandFormat.Pattern(pattern)</option>
+                        }
+                    </select>
+                </div>
+                <div class="field col-2">
+                    <label class="field-label required" for="RandomSeed">Semilla</label>
+                    <input class="input num" type="number" id="RandomSeed" name="RandomSeed" value="@Model.RandomSeed" min="0" step="1" inputmode="numeric" />
+                    <span class="field-hint">Número entero, 0 o mayor.</span>
+                </div>
+                <div class="field col-4">
+                    <label class="field-label required" for="ProductIds">Productos</label>
+                    <select class="select select-multiple" id="ProductIds" name="ProductIds" multiple size="6">
+                        @foreach (var p in Model.Products)
+                        {
+                            <option value="@p.Id" selected="@Model.ProductIds.Contains(p.Id)">@p.SKU — @p.Name (@p.UnitOfMeasure)</option>
+                        }
+                    </select>
+                    <span class="field-hint">Hasta @Model.MaxProducts productos. Mantén presionada Ctrl (o ⌘) para elegir varios.</span>
+                </div>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><svg class="icon"><use href="#i-flask" /></svg> Generar datos de prueba</button>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2 class="panel-title">Lotes generados</h2>
+        <span class="panel-note">@Model.Batches.Count @(Model.Batches.Count == 1 ? "lote" : "lotes")</span>
+    </div>
+    @if (Model.Batches.Count == 0)
+    {
+        <div class="empty" style="border-top: 1px solid var(--border);">
+            <span class="empty-icon"><svg class="icon"><use href="#i-flask" /></svg></span>
+            <h3>Todavía no hay datos de prueba</h3>
+            <p>Genera un lote para poder analizar y pronosticar con historial simulado.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Lote</th>
+                        <th>Período</th>
+                        <th>Productos</th>
+                        <th>Patrón</th>
+                        <th class="text-end">Registros</th>
+                        <th class="text-end"><span class="visually-hidden">Acciones</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model.Batches)
+                    {
+                        <tr>
+                            <td class="nowrap"><span class="cell-main">Lote #@b.Id</span><span class="cell-sub num">@b.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span></td>
+                            <td class="nowrap num">@b.StartDate.ToString("dd/MM/yyyy") – @b.EndDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <ul class="sale-items">
+                                    @foreach (var name in b.ProductNames.Take(3))
+                                    {
+                                        <li><span class="sale-item-name">@name</span></li>
+                                    }
+                                    @if (b.ProductNames.Count > 3)
+                                    {
+                                        <li><span class="sale-item-qty">+@(b.ProductNames.Count - 3) productos más</span></li>
+                                    }
+                                </ul>
+                            </td>
+                            <td><span class="cell-main">@DemandFormat.Pattern(b.Pattern)</span><span class="cell-sub">Semilla @b.RandomSeed</span></td>
+                            <td class="text-end num">@b.RecordCount.ToString("N0")</td>
+                            <td>
+                                <div class="actions">
+                                    <form method="post" asp-action="Delete" asp-route-id="@b.Id" data-submit-once>
+                                        <button type="submit" class="icon-button is-danger" title="Eliminar lote" aria-label="Eliminar el lote #@b.Id"><svg class="icon"><use href="#i-trash" /></svg></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

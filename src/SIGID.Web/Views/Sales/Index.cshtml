@@ -68,7 +68,7 @@
     else
     {
         <div class="result-bar" style="border-bottom: 1px solid var(--border);">
-            <span><strong>@Model.Sales.Count</strong> @(Model.Sales.Count == 1 ? "venta" : "ventas")@(Model.HasFilters ? " con los filtros aplicados" : "")</span>
+            <span><strong>@SIGID.Web.Extensions.DemandFormat.Count(Model.TotalCount)</strong> @(Model.TotalCount == 1 ? "venta" : "ventas")@(Model.HasFilters ? " con los filtros aplicados" : "")</span>
         </div>
         <div class="table-wrap">
             <table class="table sale-history">
@@ -124,5 +124,6 @@
                 </tbody>
             </table>
         </div>
+        <partial name="_Pager" model="Model.Pager" />
     }
 </section>

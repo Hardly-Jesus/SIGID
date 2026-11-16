@@ -78,10 +78,50 @@ public class InventoryMovementRepository : IInventoryMovementRepository
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.InventoryMovements
-            .AsNoTracking()
+        // Más recientes primero; el Id desempata movimientos con la misma fecha.
+        return await Filter(productId, movementType, fromDate, toDate)
             .Include(m => m.Product)
-            .AsQueryable();
+            .OrderByDescending(m => m.Date)
+            .ThenByDescending(m => m.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<InventoryMovement> Items, int TotalCount)> SearchPageAsync(
+        int? productId, MovementType? movementType, DateTime? fromDate, DateTime? toDate,
+        int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = Filter(productId, movementType, fromDate, toDate);
+        var total = await query.CountAsync(cancellationToken);
+
+        // Solo se traen las filas de la página pedida (OFFSET/FETCH en SQL Server).
+        var items = await query
+            .Include(m => m.Product)
+            .OrderByDescending(m => m.Date)
+            .ThenByDescending(m => m.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
+
+    public async Task<(int Entries, int Exits)> GetQuantityTotalsAsync(
+        int? productId, MovementType? movementType, DateTime? fromDate, DateTime? toDate,
+        CancellationToken cancellationToken = default)
+    {
+        var totals = await Filter(productId, movementType, fromDate, toDate)
+            .GroupBy(m => m.MovementType)
+            .Select(g => new { Type = g.Key, Quantity = g.Sum(m => m.Quantity) })
+            .ToListAsync(cancellationToken);
+
+        return (totals.Where(t => t.Type == MovementType.Entry).Sum(t => t.Quantity),
+                totals.Where(t => t.Type == MovementType.Exit).Sum(t => t.Quantity));
+    }
+
+    // Filtros comunes del historial (sin cargar productos).
+    private IQueryable<InventoryMovement> Filter(int? productId, MovementType? movementType, DateTime? fromDate, DateTime? toDate)
+    {
+        var query = _context.InventoryMovements.AsNoTracking();
 
         if (productId.HasValue)
             query = query.Where(m => m.ProductId == productId.Value);
@@ -95,11 +135,7 @@ public class InventoryMovementRepository : IInventoryMovementRepository
         if (toDate.HasValue)
             query = query.Where(m => m.Date <= toDate.Value);
 
-        // Más recientes primero; el Id desempata movimientos con la misma fecha.
-        return await query
-            .OrderByDescending(m => m.Date)
-            .ThenByDescending(m => m.Id)
-            .ToListAsync(cancellationToken);
+        return query;
     }
 
     public Task<IReadOnlyList<InventoryMovement>> GetAllAsync(CancellationToken cancellationToken = default)
